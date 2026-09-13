@@ -9,6 +9,7 @@ automatically; other agents can be targeted through `starter.json` → `skills.t
 |---|---|
 | `wp-plugin-lab` | The `wpx` CLI, the version matrix, the test suites, blocks, themes, editions, releasing |
 | `create-wp-plugin` | Turning this starter into a new plugin, end to end |
+| `wp-org-release` | readme.txt, directory assets, the submission zip, and SVN updates |
 
 Edit these freely - they are yours. `./bin/wpx upgrade` does not touch `.claude/`, so local changes
 survive a lab upgrade.

@@ -17,7 +17,7 @@ const DEFAULTS = {
 const CHECKOUT = () => path.join( paths.cache, 'agent-skills' );
 
 /** Skills maintained in this repository, as opposed to the ones installed from WordPress. */
-const OWN_SKILLS = [ 'wp-plugin-lab', 'create-wp-plugin' ];
+const OWN_SKILLS = [ 'wp-plugin-lab', 'create-wp-plugin', 'wp-org-release' ];
 const LOCK_FILE = () => path.join( paths.root, '.claude', 'wplab-skills.lock.json' );
 
 function config() {

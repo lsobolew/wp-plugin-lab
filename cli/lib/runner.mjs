@@ -86,13 +86,15 @@ export function packagesForEdition( edition ) {
 	const freeDir = s.editions?.free?.dir || 'my-plugin';
 	const proDir = s.editions?.pro?.dir || 'my-plugin-pro';
 
+	const wporg = ( name ) => s.editions?.[ name ]?.wporg !== false;
+
 	if ( edition !== 'pro' ) {
-		return [ { dir: freeDir, key: 'free', vendorFrom: freeDir } ];
+		return [ { dir: freeDir, key: 'free', vendorFrom: freeDir, wporg: wporg( 'free' ) } ];
 	}
 
 	return [
-		{ dir: freeDir, key: 'pro', vendorFrom: freeDir },
-		{ dir: proDir, key: 'proaddon', vendorFrom: freeDir },
+		{ dir: freeDir, key: 'pro', vendorFrom: freeDir, wporg: wporg( 'free' ) },
+		{ dir: proDir, key: 'proaddon', vendorFrom: freeDir, wporg: wporg( 'pro' ) },
 	];
 }
 
@@ -103,13 +105,21 @@ export function packagesForEdition( edition ) {
 export function allPackages() {
 	const s = starter();
 	const freeDir = s.editions?.free?.dir || 'my-plugin';
-	const packages = [ { dir: freeDir, key: 'free', vendorFrom: freeDir } ];
+	const packages = [
+		{
+			dir: freeDir,
+			key: 'free',
+			vendorFrom: freeDir,
+			wporg: s.editions?.free?.wporg !== false,
+		},
+	];
 
 	if ( availableEditions().includes( 'pro' ) ) {
 		packages.push( {
 			dir: s.editions?.pro?.dir || 'my-plugin-pro',
 			key: 'proaddon',
 			vendorFrom: freeDir,
+			wporg: s.editions?.pro?.wporg !== false,
 		} );
 	}
 
@@ -249,6 +259,16 @@ export async function runSuite( {
 	}
 
 	if ( suite === 'plugin-check' ) {
+		// Plugin Check encodes the WordPress.org directory's rules. A plugin distributed elsewhere
+		// legitimately breaks them - a self-hosted add-on needs the Update URI header the directory
+		// forbids, and has no reason to carry a readme.txt - so checking it reports failures that
+		// are not failures.
+		if ( pkg.wporg === false ) {
+			emit( `${ pkg.dir }: not destined for WordPress.org, skipping Plugin Check\n` );
+
+			return { ok: true, file: null };
+		}
+
 		const ready = await ensureUp( matrix, [ target ], { onLog: emit } );
 		if ( ! ready ) return { ok: false, file: null };
 
@@ -277,9 +297,18 @@ export async function runSuite( {
 			'wp --allow-root plugin activate plugin-check || true',
 			// --slug keeps the checks that derive from the plugin slug - the text domain above all -
 			// pointed at the real name rather than at this throwaway directory.
-			`wp --allow-root plugin check ${ staging } --slug=${ pkg.dir } --format=table --severity=5; STATUS=$?`,
+			`wp --allow-root plugin check ${ staging } --slug=${ pkg.dir } --format=table --severity=5 || true`,
+			// `wp plugin check` prints its findings and still exits 0, so the run has to decide for
+			// itself. Asking again with warnings suppressed leaves either a success line or the
+			// errors, which is what turns the report into a pass or a fail instead of something
+			// that scrolls past.
+			`ERRORS="$(wp --allow-root plugin check ${ staging } --slug=${ pkg.dir } ` +
+				`--severity=5 --ignore-warnings 2>/dev/null)"`,
 			`rm -rf ${ stagingPath }`,
-			'exit $STATUS',
+			'if echo "$ERRORS" | grep -q "No errors found"; then echo "Plugin Check: no errors."; ' +
+				'elif echo "$ERRORS" | grep -q "ERROR"; then ' +
+				'echo "Plugin Check reported errors (shown above)."; exit 1; ' +
+				'else echo "Plugin Check: no errors."; fi',
 		].join( '; ' );
 
 		let output = '';

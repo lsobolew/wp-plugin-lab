@@ -4,8 +4,9 @@ This is **WP Plugin Lab**: a WordPress plugin development environment plus the p
 
 ## Read the skills first
 
-`.claude/skills/wp-plugin-lab` describes this repository's CLI and workflow, and
-`.claude/skills/create-wp-plugin` covers starting a new plugin from it.
+`.claude/skills/wp-plugin-lab` describes this repository's CLI and workflow,
+`.claude/skills/create-wp-plugin` covers starting a new plugin from it, and
+`.claude/skills/wp-org-release` covers readme.txt and publishing to the WordPress.org directory.
 
 The rest of `.claude/skills/` is the official
 [WordPress agent skills](https://github.com/WordPress/agent-skills) project.

@@ -1,5 +1,5 @@
 === My Plugin ===
-Contributors: yourname
+Contributors: lsobolew
 Tags: example, starter
 Requires at least: 6.6
 Tested up to: 7.1

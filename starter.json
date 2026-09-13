@@ -7,21 +7,24 @@
 	"hookPrefix": "myplugin",
 	"textDomain": "my-plugin",
 	"description": "A WordPress plugin scaffolded with WP Plugin Lab.",
-	"author": "Your Name",
-	"authorUri": "https://example.com",
-	"pluginUri": "https://example.com/my-plugin",
+	"author": "Lukasz Sobolewski",
+	"authorUri": "https://github.com/lsobolew",
+	"pluginUri": "https://github.com/lsobolew/wp-plugin-lab",
 	"license": "GPL-2.0-or-later",
 	"requiresWp": "6.6",
 	"requiresPhp": "7.4",
 	"editions": {
 		"free": {
 			"dir": "my-plugin",
-			"enabled": true
+			"enabled": true,
+			"wporg": true
 		},
 		"pro": {
 			"dir": "my-plugin-pro",
-			"enabled": true
-		}
+			"enabled": true,
+			"wporg": false
+		},
+		"//": "wporg says whether an edition is destined for the WordPress.org directory. Plugin Check only runs on those: a privately distributed add-on legitimately carries an Update URI header and no readme.txt, both of which the directory's own tool reports as errors."
 	},
 	"features": {
 		"settings": {

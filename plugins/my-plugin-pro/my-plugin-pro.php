@@ -1,15 +1,15 @@
 <?php
 /**
  * Plugin Name:       My Plugin Pro
- * Plugin URI:        https://example.com/my-plugin-pro
- * Update URI:        https://example.com/my-plugin-pro
+ * Plugin URI:        https://github.com/lsobolew/wp-plugin-lab-pro
+ * Update URI:        https://github.com/lsobolew/wp-plugin-lab-pro
  * Description:       Paid add-on for the My Plugin plugin.
  * Version:           0.1.0
  * Requires at least: 6.6
  * Requires PHP:      7.4
  * Requires Plugins:  my-plugin
- * Author:            Your Name
- * Author URI:        https://example.com
+ * Author:            Lukasz Sobolewski
+ * Author URI:        https://github.com/lsobolew
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       my-plugin-pro
