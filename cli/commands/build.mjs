@@ -84,8 +84,44 @@ async function packagePlugin( target, dir, version, onLog ) {
 	return code === 0;
 }
 
+/**
+ * Smoke-tests a built zip on a running site.
+ *
+ * It deliberately does NOT use `wp plugin install`: the plugin directory is a bind mount from the
+ * host, and WordPress deletes the old directory before unpacking - which would wipe your working
+ * copy on disk. Instead the package is unpacked into a throwaway directory that is not mounted,
+ * activated there, and removed afterwards.
+ */
+async function verifyPackage( target, dir, version, onLog ) {
+	const slug = `wplab-verify-${ dir }`;
+	const zip = `/wplab/build/${ dir }-${ version }.zip`;
+	const dest = `/var/www/html/wp-content/plugins/${ slug }`;
+
+	const script = [
+		`set -e`,
+		`wp --allow-root plugin deactivate ${ dir } >/dev/null 2>&1 || true`,
+		`rm -rf /tmp/${ slug } ${ dest }`,
+		`mkdir -p /tmp/${ slug }`,
+		`unzip -q ${ zip } -d /tmp/${ slug }`,
+		`mv /tmp/${ slug }/${ dir } ${ dest }`,
+		`find ${ dest } -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null`,
+		`wp --allow-root plugin activate ${ slug }`,
+		`wp --allow-root plugin deactivate ${ slug } >/dev/null`,
+		`rm -rf ${ dest } /tmp/${ slug }`,
+		`wp --allow-root plugin activate ${ dir } >/dev/null 2>&1 || true`,
+		`echo "package verified: activates cleanly on WP $(wp --allow-root core version)"`,
+	].join( ' && ' );
+
+	const { code } = await compose(
+		[ 'exec', '-T', target.service, 'bash', '-lc', script ],
+		{ onData: onLog }
+	);
+
+	return code === 0;
+}
+
 export async function run_build( argv ) {
-	const { flags } = parseArgs( argv, { booleans: [ 'skip-assets' ] } );
+	const { flags } = parseArgs( argv, { booleans: [ 'skip-assets', 'verify' ] } );
 	await assertDocker();
 
 	const s = starter();
@@ -126,6 +162,11 @@ export async function run_build( argv ) {
 
 		if ( ! ( await packagePlugin( target, dir, version, ( t ) => process.stdout.write( t ) ) ) ) {
 			log.fail( `${ dir }: packaging failed` );
+			return 1;
+		}
+
+		if ( flags.verify && ! ( await verifyPackage( target, dir, version, ( t ) => process.stdout.write( t ) ) ) ) {
+			log.fail( `${ dir }: the built package failed verification` );
 			return 1;
 		}
 

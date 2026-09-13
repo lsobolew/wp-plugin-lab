@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <ruleset name="My Plugin Pro">
-	<description>Standard kodowania WordPressa dla dodatku Pro.</description>
+	<description>WordPress coding standards for the Pro add-on.</description>
 
 	<file>.</file>
 	<exclude-pattern>/vendor/*</exclude-pattern>
@@ -13,13 +13,14 @@
 	<arg name="colors"/>
 	<arg value="ps"/>
 
-	<!-- Wersje z naglowka wtyczki: PHPCS sam wylapie uzycie zbyt nowych funkcji WP i PHP. -->
+	<!-- Taken from the plugin header: PHPCS then flags any WordPress or PHP feature that is too
+	     new for the versions this plugin claims to support. -->
 	<config name="minimum_wp_version" value="6.6"/>
 	<config name="testVersion" value="7.4-"/>
 
 	<rule ref="WordPress">
-		<!-- Klasy trzymamy w ukladzie PSR-4 (Container.php, a nie class-container.php),
-		     bo tego wymaga autoloader. Reszta standardu WordPressa zostaje. -->
+		<!-- Classes follow PSR-4 (Container.php, not class-container.php) because that is what the
+		     autoloader needs. The rest of the WordPress standard stays in force. -->
 		<exclude name="WordPress.Files.FileName"/>
 	</rule>
 
@@ -33,7 +34,7 @@
 
 	<rule ref="PHPCompatibilityWP"/>
 
-	<!-- Testy nie musza dokumentowac kazdej metody ani stosowac prefiksow globalnych. -->
+	<!-- Tests neither document every method nor prefix globals. -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>

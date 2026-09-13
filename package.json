@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-	"description": "Srodowisko do tworzenia wtyczek WordPress: macierz wersji, testy i panel.",
+	"description": "WordPress plugin development environment: version matrix, test suites and a dashboard.",
 	"license": "GPL-2.0-or-later",
 	"engines": {
 		"node": ">=20"

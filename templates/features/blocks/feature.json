@@ -1,0 +1,16 @@
+{
+	"name": "blocks",
+	"title": "Editor block",
+	"edition": "free",
+	"moduleClass": "MyVendor\\MyPlugin\\Modules\\Blocks\\Module",
+	"paths": [
+		"src/Modules/Blocks",
+		"assets/blocks"
+	],
+	"tests": [],
+	"npmDependencies": [
+		"@wordpress/scripts",
+		"@wordpress/server-side-render"
+	],
+	"notes": "Removing this drops the whole JavaScript build. Delete plugins/<slug>/build afterwards, and the block case in tests/e2e/free/items.spec.js."
+}

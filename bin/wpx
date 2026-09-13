@@ -7,6 +7,7 @@ import process from 'node:process';
 import { log, c, UserError } from '../cli/lib/log.mjs';
 
 const COMMANDS = {
+	init: 'Turn the starter into your own plugin (rename slug, namespace, prefixes).',
 	doctor: 'Check that this machine is ready (Docker, ports, dependencies).',
 	compose: 'Regenerate env/docker-compose.gen.yml from wp-matrix.json.',
 	up: 'Start the selected WordPress versions (all of them by default).',
@@ -17,6 +18,8 @@ const COMMANDS = {
 	test: 'Run tests: unit | integration | e2e | lint | analyse | all.',
 	panel: 'Open the dashboard for the matrix and the tests (127.0.0.1:7777).',
 	skills: 'Install or update the official WordPress agent skills.',
+	feature: 'List, remove or restore plugin features (modules).',
+	hooks: 'Enable the versioned git hooks (pre-commit PHPCS).',
 	build: 'Build distributable zips in dist/ (--edition=free|pro|both).',
 	version: 'Set the plugin version everywhere it is written down.',
 	wp: 'Run WP-CLI inside a container: wpx wp latest -- plugin list',

@@ -1,25 +1,23 @@
 /**
- * Testy e2e edycji Pro. Ten katalog wchodzi do przebiegu tylko przy --edition=pro.
+ * End-to-end tests for the Pro edition. This directory only runs with --edition=pro.
  */
 import { test, expect } from '@wordpress/e2e-test-utils-playwright';
 
-test.describe( 'Edycja Pro', () => {
-	test( 'sekcja licencji jest na stronie ustawien wtyczki darmowej', async ( {
+const SAVE_BUTTON = /Save Changes|Save/;
+
+test.describe( 'Pro edition', () => {
+	test( 'adds its licence section to the free plugin settings screen', async ( {
 		admin,
 		page,
 	} ) => {
 		await admin.visitAdminPage( 'options-general.php', 'page=my-plugin' );
 
-		await expect(
-			page.getByRole( 'heading', { name: 'Licencja Pro' } )
-		).toBeVisible();
+		await expect( page.getByRole( 'heading', { name: 'Pro licence' } ) ).toBeVisible();
 		await expect( page.locator( '#my-plugin-pro-license-key' ) ).toBeVisible();
-		await expect( page.locator( '#my-plugin-pro-license-status' ) ).toContainText(
-			'brak klucza'
-		);
+		await expect( page.locator( '#my-plugin-pro-license-status' ) ).toContainText( 'no key' );
 	} );
 
-	test( 'dodatek rozszerza odpowiedz REST wtyczki darmowej', async ( { requestUtils } ) => {
+	test( 'extends the free plugin REST response', async ( { requestUtils } ) => {
 		const item = await requestUtils.rest( {
 			method: 'POST',
 			path: '/wp/v2/myplugin_item',
@@ -38,34 +36,38 @@ test.describe( 'Edycja Pro', () => {
 		} );
 	} );
 
-	test( 'pole licencji zapisuje sie w tym samym formularzu co reszta ustawien', async ( {
+	test( 'saves the licence key in the same form as the rest of the settings', async ( {
 		admin,
 		page,
 	} ) => {
 		await admin.visitAdminPage( 'options-general.php', 'page=my-plugin' );
 
-		// Jeden formularz Settings API - zapis licencji i zapis pozostalych ustawien to ten sam
-		// przycisk. Zagniezdzony <form> rozbilby ten ekran, wiec pilnujemy tego testem.
+		// One Settings API form: the licence and the other settings share a single save button.
+		// A nested <form> would tear this screen apart, so the test pins that down.
 		await expect( page.locator( '#my-plugin-settings form' ) ).toHaveCount( 1 );
 
 		await page.fill( 'input[name="my_plugin_pro_license[key]"]', 'TEST-KEY-0000' );
-		await page.fill( 'input[name="my_plugin_settings[api_label]"]', 'razem-z-licencja' );
-		await page.getByRole( 'button', { name: /Zapisz|Save/ } ).click();
+		await page.fill( 'input[name="my_plugin_settings[api_label]"]', 'saved-with-licence' );
+		await page.getByRole( 'button', { name: SAVE_BUTTON } ).click();
 
 		await expect( page.locator( '#setting-error-settings_updated' ) ).toBeVisible();
 
 		await admin.visitAdminPage( 'options-general.php', 'page=my-plugin' );
 
-		// Serwer licencji nie istnieje, wiec status ma byc "nieznany" - klucz zapisany,
-		// ekran dziala, a zwykle ustawienia zapisaly sie razem z nim.
+		// There is no licence server here, so the status must read "unknown": the key is stored,
+		// the screen works, and the ordinary settings were saved alongside it.
 		await expect( page.locator( '#my-plugin-pro-license-key' ) ).toHaveValue( 'TEST-KEY-0000' );
-		await expect( page.locator( '#my-plugin-pro-license-status' ) ).toContainText( 'nieznany' );
+		await expect( page.locator( '#my-plugin-pro-license-status' ) ).toContainText( 'unknown' );
 		await expect(
 			page.locator( 'input[name="my_plugin_settings[api_label]"]' )
-		).toHaveValue( 'razem-z-licencja' );
+		).toHaveValue( 'saved-with-licence' );
 
-		// Sprzatanie: puste pole zwalnia licencje.
+		// Clean up: an empty field releases the licence. The confirmation has to be awaited -
+		// without it Playwright tears the page down mid-request, the key survives, and the next
+		// run of this file finds a licence it never set.
 		await page.fill( 'input[name="my_plugin_pro_license[key]"]', '' );
-		await page.getByRole( 'button', { name: /Zapisz|Save/ } ).click();
+		await page.getByRole( 'button', { name: SAVE_BUTTON } ).click();
+		await expect( page.locator( '#setting-error-settings_updated' ) ).toBeVisible();
+		await expect( page.locator( '#my-plugin-pro-license-status' ) ).toContainText( 'no key' );
 	} );
 } );

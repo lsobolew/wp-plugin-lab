@@ -15,9 +15,9 @@ declare( strict_types=1 );
 defined( 'ABSPATH' ) || exit;
 
 return array(
+	MyVendor\MyPlugin\Modules\Blocks\Module::class,
 	MyVendor\MyPlugin\Modules\Settings\Module::class,
 	MyVendor\MyPlugin\Modules\ContentType\Module::class,
 	MyVendor\MyPlugin\Modules\Rest\Module::class,
 	MyVendor\MyPlugin\Modules\Cli\Module::class,
-	MyVendor\MyPlugin\Modules\Blocks\Module::class,
 );

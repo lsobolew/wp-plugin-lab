@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, trunk ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The job matrix is generated from wp-matrix.json, so adding a WordPress version to that file
+  # is all it takes to have CI cover it too.
+  matrix:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.resolve.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: resolve
+        run: echo "targets=$(./bin/wpx matrix --json)" >> "$GITHUB_OUTPUT"
+      - run: ./bin/wpx matrix
+
+  static:
+    name: PHPCS, PHPStan, Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Start the newest WordPress
+        run: ./bin/wpx up latest
+      - run: ./bin/wpx test lint --targets=latest
+      - run: ./bin/wpx test analyse --targets=latest
+      - run: ./bin/wpx test plugin-check --targets=latest
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-results
+          path: .wplab/results/
+          if-no-files-found: ignore
+
+  tests:
+    name: WP ${{ matrix.wp }} / PHP ${{ matrix.php }}
+    needs: matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the e2e runner
+        run: npm ci
+      - name: Start WordPress ${{ matrix.wp }}
+        run: ./bin/wpx up ${{ matrix.id }}
+      - name: Unit and integration tests
+        run: ./bin/wpx test unit integration --targets=${{ matrix.id }} --edition=both
+      - name: End-to-end tests
+        run: ./bin/wpx test e2e --targets=${{ matrix.id }} --edition=both
+      - name: Container logs on failure
+        if: failure()
+        run: ./bin/wpx logs ${{ matrix.id }} --no-follow --tail=200
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.id }}
+          path: |
+            .wplab/results/
+            playwright-report/
+          if-no-files-found: ignore
+
+  package:
+    name: Build the distributables
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: ./bin/wpx up latest
+      # --verify unpacks the zip on a real site and activates it, which catches a package that is
+      # missing files long before a user downloads it.
+      - run: ./bin/wpx build --edition=both --verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zips
+          path: dist/*.zip

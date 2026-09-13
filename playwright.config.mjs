@@ -4,19 +4,20 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname( fileURLToPath( import.meta.url ) );
 
-// Konfiguracja jest sterowana zmiennymi z `wpx test e2e` - jeden przebieg = jedna wersja WP
-// w jednej edycji, dzieki czemu raporty i wyniki JUnit nie mieszaja sie miedzy soba.
+// Driven by the variables `wpx test e2e` sets: one run is one WordPress version in one edition,
+// which keeps the reports and the JUnit results from bleeding into each other.
 const targetId = process.env.WPLAB_TARGET || 'latest';
 const edition = process.env.WPLAB_EDITION || 'free';
 const baseURL = process.env.WP_BASE_URL || 'http://localhost:8091';
 const artifacts = path.join( root, '.wplab', 'artifacts', `${ targetId }-${ edition }` );
 
-// Specy e2e zyja w korzeniu repo, a nie w katalogu wtyczki, z dwoch powodow: testuja cale
-// dzialajace srodowisko (nie paczke), a przy okazji omijaja druga kopie Playwrighta, ktora
-// @wordpress/scripts instaluje w node_modules wtyczki - dwie instancje nie potrafia sie dogadac.
+// The e2e specs live at the repository root rather than inside the plugin, for two reasons: they
+// exercise a whole running environment rather than a package, and they sidestep the second copy of
+// Playwright that @wordpress/scripts installs in the plugin node_modules - two instances of it
+// cannot agree on anything.
 //
-// W edycji free specy dodatku nie wchodza do zestawu, inaczej kazdy z nich musialby sam
-// sprawdzac, czy Pro jest aktywne.
+// In the free edition the add-on specs stay out of the run; otherwise each of them would have to
+// check for itself whether Pro is active.
 const testMatch = edition === 'pro' ? [ '**/*.spec.js' ] : [ 'free/**/*.spec.js' ];
 
 export default defineConfig( {
@@ -37,7 +38,7 @@ export default defineConfig( {
 	use: {
 		...devices[ 'Desktop Chrome' ],
 		baseURL,
-		// Stan logowania zapisany przez globalSetup - testy nie przechodza przez formularz logowania.
+		// Login state written by globalSetup, so no test has to walk through the login form.
 		storageState: path.join( artifacts, 'storage-states', 'admin.json' ),
 		video: 'off',
 		screenshot: 'only-on-failure',

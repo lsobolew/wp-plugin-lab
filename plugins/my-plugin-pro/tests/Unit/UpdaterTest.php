@@ -71,7 +71,7 @@ final class UpdaterTest extends TestCase {
 		);
 
 		$this->assertFalse(
-			$updater->check_for_update( false, array(), 'inna-wtyczka/inna-wtyczka.php' )
+			$updater->check_for_update( false, array(), 'another-plugin/another-plugin.php' )
 		);
 	}
 

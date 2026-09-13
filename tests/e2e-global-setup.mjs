@@ -2,9 +2,9 @@ import { request } from '@playwright/test';
 import { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 
 /**
- * Loguje sie raz na caly przebieg i zapisuje ciasteczka oraz nonce REST do pliku stanu.
- * Bez tego kazdy spec przechodzilby przez formularz logowania, co przy macierzy wersji
- * zamienia sie w kilkadziesiat niepotrzebnych logowan.
+ * Logs in once per run and writes the cookies and the REST nonce to a state file. Without it every
+ * spec would walk through the login form, which across a whole version matrix turns into dozens of
+ * pointless logins.
  */
 export default async function globalSetup( config ) {
 	const { storageState, baseURL } = config.projects[ 0 ].use;
