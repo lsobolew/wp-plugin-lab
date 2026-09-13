@@ -118,7 +118,78 @@ export async function resolveMatrix() {
 		editions: cfg.editions?.length ? cfg.editions : [ 'free' ],
 		defaults: cfg.defaults || {},
 		ports: cfg.ports || {},
+		themes: resolveThemes( cfg ),
 	};
+}
+
+/**
+ * Theme configuration, normalized.
+ *
+ * A missing themes block is not an error: a plugin that is not about blocks has no reason to care
+ * which theme is active, and everything downstream falls back to a single implicit theme.
+ */
+function resolveThemes( cfg ) {
+	const raw = cfg.themes || {};
+	const available = ( raw.available || [] ).map( ( theme ) => ( {
+		slug: theme.slug,
+		alias: theme.alias || theme.slug,
+		source: theme.source || 'wporg',
+		type: theme.type || 'block',
+		path: theme.path || `themes/${ theme.slug }`,
+	} ) );
+
+	const fallback = raw.default || available[ 0 ]?.slug || '';
+
+	return {
+		default: fallback,
+		available,
+		sweep: {
+			targets: raw.sweep?.targets || [],
+			themes: raw.sweep?.themes || [],
+		},
+	};
+}
+
+/**
+ * Themes a given target is tested on.
+ *
+ * Only the targets named in `sweep` run the whole set; the rest stay on the default. Every extra
+ * theme is another full end-to-end run, so widening this is a deliberate decision, not a default.
+ *
+ * @param {object} matrix   Resolved matrix.
+ * @param {string} targetId Target id.
+ * @param {string[]} [override] Explicit theme slugs or aliases from the command line.
+ */
+export function themesForTarget( matrix, targetId, override ) {
+	const { themes } = matrix;
+
+	if ( ! themes.available.length ) return [ null ];
+
+	const bySlug = ( value ) =>
+		themes.available.find( ( t ) => t.slug === value || t.alias === value );
+
+	if ( override?.length ) {
+		return override.map( ( value ) => {
+			const found = bySlug( value );
+
+			if ( ! found ) {
+				throw new UserError(
+					`Unknown theme "${ value }". Available: ${ themes.available
+						.map( ( t ) => `${ t.slug } (${ t.alias })` )
+						.join( ', ' ) }`
+				);
+			}
+
+			return found;
+		} );
+	}
+
+	const inSweep = themes.sweep.targets.includes( targetId );
+	const slugs = inSweep && themes.sweep.themes.length
+		? themes.sweep.themes
+		: [ themes.default ];
+
+	return slugs.map( ( slug ) => bySlug( slug ) ).filter( Boolean );
 }
 
 async function needsBranches( cfg ) {

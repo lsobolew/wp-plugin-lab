@@ -9,7 +9,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { paths, ensureDir } from '../cli/lib/paths.mjs';
-import { resolveMatrix, selectTargets } from '../cli/lib/matrix.mjs';
+import { resolveMatrix, selectTargets, themesForTarget } from '../cli/lib/matrix.mjs';
 import {
 	compose,
 	serviceStatus,
@@ -122,7 +122,12 @@ async function buildState() {
 			};
 		} ),
 		editions: availableEditions(),
-		suites: [ 'unit', 'integration', 'e2e', 'lint', 'analyse' ],
+		themes: matrix.themes.available.map( ( theme ) => ( {
+			slug: theme.slug,
+			alias: theme.alias,
+			type: theme.type,
+		} ) ),
+		suites: [ 'unit', 'integration', 'e2e', 'types', 'lint', 'analyse', 'plugin-check' ],
 		results,
 		jobs: jobs.slice( -30 ),
 		activeJobId: activeJob?.id ?? null,
@@ -217,13 +222,27 @@ async function handleApi( req, res, url ) {
 						  );
 
 					for ( const target of targets ) {
+						const themes =
+							suite === 'e2e'
+								? themesForTarget( matrix, target.id, body.themes || [] )
+								: [ null ];
+
 						for ( const { edition, pkg } of combos ) {
-							const result =
-								suite === 'e2e'
-									? await runE2e( { matrix, target, edition, onLog: emit } )
-									: await runSuite( { matrix, target, suite, edition, pkg, onLog: emit } );
-							ok = ok && result.ok;
-							broadcast( 'state', await buildState() );
+							for ( const theme of themes ) {
+								const result =
+									suite === 'e2e'
+										? await runE2e( { matrix, target, edition, theme, onLog: emit } )
+										: await runSuite( {
+												matrix,
+												target,
+												suite,
+												edition,
+												pkg,
+												onLog: emit,
+										  } );
+								ok = ok && result.ok;
+								broadcast( 'state', await buildState() );
+							}
 						}
 					}
 				}

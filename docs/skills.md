@@ -14,7 +14,18 @@ They are maintained by the WordPress project and licensed GPL-2.0-or-later.
 ./bin/wpx skills update     # same command, refreshes to the newest upstream commit
 ./bin/wpx skills status     # what is installed, and whether upstream moved
 ./bin/wpx skills list       # everything available upstream
+./bin/wpx skills global     # this repository's own skills, at user level
 ```
+
+## Two kinds of skill
+
+`wp-plugin-lab` and `create-wp-plugin` are maintained in this repository and describe the tooling
+itself. Everything else comes from WordPress.
+
+`wpx skills global` copies the first two into `~/.claude/skills/`. That matters for one specific
+case: a project skill is only visible once an agent is already inside the repository, which is too
+late to help with "clone the starter and build me a plugin". Installed at user level, the
+instructions are there before the clone exists.
 
 Which skills get installed is configured in `starter.json`:
 

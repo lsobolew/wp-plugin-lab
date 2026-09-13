@@ -16,10 +16,17 @@ the dashboard reads and what CI uploads as an artifact.
 |---|---|---|
 | `unit` | Container, no database | Pure logic. WordPress functions are stubbed by Brain Monkey, so the suite finishes in well under a second. |
 | `integration` | Container, real database | Behaviour against an actual WordPress: post types, meta, REST, options, capabilities. Uses the WordPress core test suite (`WP_UnitTestCase`). |
-| `e2e` | Host Node, real browser | The product as a user meets it: admin screens, saving settings, front-end rendering. Playwright plus `@wordpress/e2e-test-utils-playwright`. |
+| `e2e` | Host Node, real browser | The product as a user meets it: admin screens, blocks in the real editor, front-end rendering. Runs once per theme in the sweep. Playwright plus `@wordpress/e2e-test-utils-playwright`. |
+| `types` | Host Node | `tsc --noEmit`. Vite only transpiles, so nothing would check the block types without this step. |
 | `lint` | Container | PHPCS with WordPress Coding Standards and PHPCompatibility, pinned to the versions in the plugin header. |
 | `analyse` | Container | PHPStan level 6 with WordPress stubs. |
 | `plugin-check` | Container | The official Plugin Check plugin - the same tool the WordPress.org review team runs. |
+
+## Themes are a test dimension too
+
+For end-to-end runs the theme is part of the combination, because a block meets a very different
+environment under a block theme than under a classic one. Result names carry the theme alias
+(`latest-free-tt1-e2e`), and `docs/themes.md` explains the configuration.
 
 ## Editions are a test dimension
 

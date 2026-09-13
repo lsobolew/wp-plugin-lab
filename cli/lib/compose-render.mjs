@@ -18,6 +18,14 @@ const q = ( v ) => JSON.stringify( String( v ) );
  */
 export function renderCompose( matrix ) {
 	const plugins = pluginDirs();
+
+	// Only mount themes that actually exist on disk: a configured-but-missing directory would make
+	// Docker create an empty one and WordPress would list a broken theme.
+	const localThemes = ( matrix.themes?.available || [] ).filter(
+		( theme ) =>
+			theme.source === 'local' && fs.existsSync( path.join( paths.root, theme.path ) )
+	);
+
 	const mailpitUi = matrix.ports?.mailpitUi || 8025;
 	const dbImage = matrix.defaults?.db || 'mariadb:11';
 
@@ -101,6 +109,17 @@ export function renderCompose( matrix ) {
 					.join( ' ' )
 			) }`
 		);
+		// Themes pulled from WordPress.org are installed by the entrypoint; local ones are
+		// mounted below, the same way plugins are.
+		lines.push(
+			`      WPLAB_THEMES: ${ q(
+				( matrix.themes?.available || [] )
+					.filter( ( theme ) => theme.source === 'wporg' )
+					.map( ( theme ) => theme.slug )
+					.join( ' ' )
+			) }`
+		);
+		lines.push( `      WPLAB_DEFAULT_THEME: ${ q( matrix.themes?.default || '' ) }` );
 		lines.push(
 			'      XDEBUG_MODE: "${XDEBUG_MODE:-' + ( matrix.defaults?.xdebug || 'off' ) + '}"'
 		);
@@ -116,6 +135,12 @@ export function renderCompose( matrix ) {
 		for ( const p of plugins ) {
 			lines.push(
 				`      - ../plugins/${ p.dir }:/var/www/html/wp-content/plugins/${ p.dir }`
+			);
+		}
+
+		for ( const theme of localThemes ) {
+			lines.push(
+				`      - ../${ theme.path }:/var/www/html/wp-content/themes/${ theme.slug }`
 			);
 		}
 		lines.push( '    healthcheck:' );

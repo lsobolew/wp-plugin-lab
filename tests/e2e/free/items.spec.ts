@@ -3,7 +3,7 @@
  */
 import { test, expect } from '@wordpress/e2e-test-utils-playwright';
 
-const CREATED = [];
+const CREATED: number[] = [];
 
 test.describe( 'Plugin items', () => {
 	test.beforeAll( async ( { requestUtils } ) => {

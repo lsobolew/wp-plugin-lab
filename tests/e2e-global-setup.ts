@@ -1,4 +1,5 @@
 import { request } from '@playwright/test';
+import type { FullConfig } from '@playwright/test';
 import { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
 
 /**
@@ -6,8 +7,8 @@ import { RequestUtils } from '@wordpress/e2e-test-utils-playwright';
  * spec would walk through the login form, which across a whole version matrix turns into dozens of
  * pointless logins.
  */
-export default async function globalSetup( config ) {
-	const { storageState, baseURL } = config.projects[ 0 ].use;
+export default async function globalSetup( config: FullConfig ) {
+	const { storageState, baseURL } = config.projects[ 0 ]!.use;
 	const storageStatePath = typeof storageState === 'string' ? storageState : undefined;
 
 	const context = await request.newContext( { baseURL } );

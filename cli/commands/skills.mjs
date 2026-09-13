@@ -15,6 +15,9 @@ const DEFAULTS = {
 };
 
 const CHECKOUT = () => path.join( paths.cache, 'agent-skills' );
+
+/** Skills maintained in this repository, as opposed to the ones installed from WordPress. */
+const OWN_SKILLS = [ 'wp-plugin-lab', 'create-wp-plugin' ];
 const LOCK_FILE = () => path.join( paths.root, '.claude', 'wplab-skills.lock.json' );
 
 function config() {
@@ -212,6 +215,62 @@ async function list() {
 	return 0;
 }
 
+/**
+ * Copies this repository's own skills into the user-level skill directory.
+ *
+ * Project skills only load once an agent is already inside the repository, which is too late for
+ * "clone this starter and build me a plugin" - the agent has to know how to do that before the
+ * clone exists. Installed globally, the instructions are available from any directory.
+ */
+async function installGlobal( argv ) {
+	const { flags } = parseArgs( argv, { booleans: [ 'dry-run' ] } );
+	const home = process.env.HOME || process.env.USERPROFILE;
+
+	if ( ! home ) {
+		throw new UserError( 'Could not determine the home directory.' );
+	}
+
+	const target = path.join( home, '.claude', 'skills' );
+	const installed = [];
+
+	for ( const name of OWN_SKILLS ) {
+		const source = path.join( paths.root, '.claude', 'skills', name );
+
+		if ( ! fs.existsSync( source ) ) continue;
+
+		const destination = path.join( target, name );
+
+		if ( ! flags[ 'dry-run' ] ) {
+			fs.rmSync( destination, { recursive: true, force: true } );
+			fs.mkdirSync( path.dirname( destination ), { recursive: true } );
+			fs.cpSync( source, destination, { recursive: true } );
+		}
+
+		installed.push( name );
+	}
+
+	log.blank();
+
+	if ( ! installed.length ) {
+		log.warn( 'No skills of our own found in .claude/skills.' );
+		log.blank();
+
+		return 1;
+	}
+
+	log.ok(
+		`${ flags[ 'dry-run' ] ? 'Would install' : 'Installed' } ${ installed.join( ', ' ) } into ${ c.cyan(
+			target
+		) }`
+	);
+	log.dim( '   They now work from any directory, including an empty one - which is what makes' );
+	log.dim( '   "clone the starter and build me a plugin X" a single prompt.' );
+	log.dim( '   Re-run this after `wpx upgrade` to pick up newer instructions.' );
+	log.blank();
+
+	return 0;
+}
+
 export async function run( argv ) {
 	const [ sub, ...rest ] = argv;
 
@@ -220,13 +279,15 @@ export async function run( argv ) {
 		case 'install':
 		case 'update':
 			return install( rest );
+		case 'global':
+			return installGlobal( rest );
 		case 'status':
 			return status();
 		case 'list':
 			return list();
 		default:
 			throw new UserError(
-				`Unknown subcommand "${ sub }". Available: install, update, status, list.`
+				`Unknown subcommand "${ sub }". Available: install, update, global, status, list.`
 			);
 	}
 }

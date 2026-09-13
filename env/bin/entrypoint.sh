@@ -17,6 +17,8 @@ WP_ADMIN_PASSWORD="${WP_ADMIN_PASSWORD:-password}"
 WP_ADMIN_EMAIL="${WP_ADMIN_EMAIL:-admin@example.test}"
 WPLAB_PLUGINS="${WPLAB_PLUGINS:-}"
 WPLAB_DEV_PLUGINS="${WPLAB_DEV_PLUGINS:-query-monitor wp-crontrol}"
+WPLAB_THEMES="${WPLAB_THEMES:-}"
+WPLAB_DEFAULT_THEME="${WPLAB_DEFAULT_THEME:-}"
 
 READY_FLAG=/var/www/html/.wplab-ready
 CORE_MARKER=/var/www/html/.wplab-core-version
@@ -170,7 +172,30 @@ for plugin in ${WPLAB_PLUGINS}; do
 		|| warn "composer install for ${plugin} failed - the plugin may not start"
 done
 
-# --- 6. plugins ------------------------------------------------------------
+# --- 6. themes -------------------------------------------------------------
+# A block behaves differently under a block theme than under a classic one, so the versions the
+# tests sweep have to be present. Installing is idempotent and skipped when already there.
+for theme in ${WPLAB_THEMES}; do
+	if ! ${WP} theme is-installed "${theme}" --skip-plugins --skip-themes 2>/dev/null; then
+		${WP} theme install "${theme}" --skip-plugins --skip-themes >/dev/null 2>&1 \
+			|| warn "could not download theme ${theme} (no network?)"
+	fi
+done
+
+if [ -n "${WPLAB_DEFAULT_THEME}" ]; then
+	if ${WP} theme is-installed "${WPLAB_DEFAULT_THEME}" --skip-plugins --skip-themes 2>/dev/null; then
+		CURRENT_THEME="$(${WP} theme list --status=active --field=name --skip-plugins --skip-themes 2>/dev/null || echo '')"
+
+		# Only force the default on a fresh site: switching it on every restart would undo a theme
+		# picked by hand with `wpx theme use`.
+		if [ -z "${CURRENT_THEME}" ] || [ "${CORE_CHANGED}" = "1" ]; then
+			${WP} theme activate "${WPLAB_DEFAULT_THEME}" --skip-plugins --skip-themes >/dev/null 2>&1 \
+				|| warn "could not activate ${WPLAB_DEFAULT_THEME}"
+		fi
+	fi
+fi
+
+# --- 7. plugins ------------------------------------------------------------
 NETWORK_FLAG=""
 [ "${WP_MULTISITE}" = "1" ] && NETWORK_FLAG="--network"
 

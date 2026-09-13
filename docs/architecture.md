@@ -70,6 +70,31 @@ treadmill. It binds to `127.0.0.1` only, because it drives Docker.
 
 Jobs are queued and run one at a time. Concurrent Docker operations on the same project race.
 
+## Vite for the blocks, not @wordpress/scripts and not @wordpress/build
+
+WordPress announced `@wordpress/build` (esbuild-based) in April 2026 and it will eventually become
+the engine inside `@wordpress/scripts`. It is not the default here yet for the reason its own
+announcement gives: a plugin registering blocks "still has gaps that require manual workarounds".
+Worth revisiting once that stops being true.
+
+Vite gives faster builds and native TypeScript, at the cost of the WordPress-specific behaviour
+webpack had a plugin for. `cli/vite/wordpress-blocks.mjs` supplies exactly that behaviour, and the
+important decision inside it is what it does *not* do: it never reimplements the mapping from
+`@wordpress/*` imports to `wp.*` globals. It imports the official one from
+`@wordpress/dependency-extraction-webpack-plugin`. That mapping carries knowledge that is easy to
+get wrong - `@wordpress/icons` has no global and must be bundled, plain `react` is externalized but
+has no script handle of its own - and it keeps working when WordPress changes it.
+
+Each block is built as an IIFE, one Rollup build per block, because WordPress loads editor scripts
+as classic scripts and an ES module would fail on its bare imports. Editor and front-end styles are
+built separately so a front-end page never pulls in editor CSS.
+
+Watch mode is `vite build --watch` rather than a dev server. A dev server would mean injecting
+modules into wp-admin across origins and running Fast Refresh against a React that has been
+externalized to a global - fragile inside the iframed block editor, and not something
+`@wordpress/scripts` offers either. Watch rebuilds in a few hundred milliseconds and the artifact
+on disk is always the real one.
+
 ## One vendor directory for every PHP version
 
 `composer.json` pins `config.platform.php` to the plugin's minimum supported PHP, so the resolved

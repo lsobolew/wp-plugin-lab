@@ -14,6 +14,7 @@ let state = null;
 const selection = {
 	suites: new Set( [ 'unit', 'integration' ] ),
 	targets: new Set(),
+	themes: new Set(),
 	edition: 'free',
 };
 
@@ -21,8 +22,10 @@ const SUITE_LABELS = {
 	unit: 'unit',
 	integration: 'integration',
 	e2e: 'e2e',
+	types: 'typescript',
 	lint: 'phpcs',
 	analyse: 'phpstan',
+	'plugin-check': 'plugin check',
 };
 
 async function api( path, options ) {
@@ -125,6 +128,15 @@ function renderControls() {
 	el( 'editions' ).innerHTML = editions
 		.map( ( e ) => chip( 'edition', e, e === 'both' ? 'both' : e, selection.edition === e ) )
 		.join( '' );
+
+	const themes = state.themes || [];
+
+	el( 'themes-field' ).hidden = themes.length === 0;
+	el( 'themes' ).innerHTML = themes
+		.map( ( t ) =>
+			chip( 'themes', t.alias, `${ t.alias } (${ t.type })`, selection.themes.has( t.alias ) )
+		)
+		.join( '' );
 }
 
 function render() {
@@ -223,6 +235,7 @@ el( 'run-form' ).addEventListener( 'submit', async ( event ) => {
 		body: JSON.stringify( {
 			suites: Array.from( selection.suites ),
 			targets: Array.from( selection.targets ),
+			themes: Array.from( selection.themes ),
 			edition: selection.edition,
 		} ),
 	} );

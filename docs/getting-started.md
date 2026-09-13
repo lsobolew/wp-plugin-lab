@@ -42,14 +42,19 @@ After renaming, rebuild the sites so they mount the new directories:
 ./bin/wpx test
 ```
 
-## Install the WordPress agent skills
+## Install the agent skills
 
 ```bash
-./bin/wpx skills install
+./bin/wpx skills install   # the official WordPress skill pack
+./bin/wpx skills global    # this repository's own skills, at user level
 ```
 
-This pulls the official WordPress skill pack into `.claude/skills/` and records the exact upstream
-commit in `.claude/wplab-skills.lock.json`. Commit both - see [skills](skills.md).
+The first pulls the WordPress skill pack into `.claude/skills/` and records the upstream commit in
+`.claude/wplab-skills.lock.json`; commit both.
+
+The second copies `wp-plugin-lab` and `create-wp-plugin` into `~/.claude/skills/`, which is what
+lets an agent act on "clone the starter and build me a plugin X" from an empty directory - a
+project skill would only become visible after the clone already happened. See [skills](skills.md).
 
 ## Run the dashboard
 
@@ -70,4 +75,7 @@ live.
 | `plugins/<slug>/` | Your free plugin |
 | `plugins/<slug>-pro/` | Your paid add-on |
 | `tests/e2e/` | Playwright specs, split into `free/` and `pro/` |
+| `plugins/<slug>/blocks/` | Block sources in TypeScript |
+| `themes/` | Local themes, mounted into every container |
+| `.claude/skills/` | Instructions for AI agents working here |
 | `.wplab/` | Logs, test results, caches (never committed) |
