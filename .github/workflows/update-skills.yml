@@ -24,7 +24,7 @@ jobs:
         run: ./bin/wpx skills update
 
       - name: Open a pull request when something changed
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/update-agent-skills
           title: 'chore: update WordPress agent skills'
