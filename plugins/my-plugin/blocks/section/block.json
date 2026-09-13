@@ -1,22 +1,22 @@
 {
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
-	"name": "my-plugin/item-list",
+	"name": "my-plugin/section",
 	"version": "0.1.0",
-	"title": "Item list",
-	"category": "widgets",
-	"icon": "list-view",
-	"description": "Displays the most recent items registered by the plugin.",
-	"keywords": [ "items", "list" ],
+	"title": "Section",
+	"category": "design",
+	"icon": "layout",
+	"description": "A container that holds other blocks.",
 	"textdomain": "my-plugin",
 	"attributes": {
-		"limit": {
-			"type": "number",
-			"default": 5
+		"tone": {
+			"type": "string",
+			"default": "plain"
 		}
 	},
 	"supports": {
 		"html": false,
+		"anchor": true,
 		"align": [ "wide", "full" ]
 	},
 	"editorScript": "file:./index.js",

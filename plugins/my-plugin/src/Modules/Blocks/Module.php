@@ -11,18 +11,22 @@ namespace MyVendor\MyPlugin\Modules\Blocks;
 
 use MyVendor\MyPlugin\Core\Module as ModuleContract;
 use MyVendor\MyPlugin\Core\Plugin;
-use MyVendor\MyPlugin\Core\Settings;
-use MyVendor\MyPlugin\Modules\ContentType\Module as ContentType;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers the blocks from build/ (produced by @wordpress/scripts from assets/blocks).
+ * Registers every block found in build/ (produced by Vite from the sources in blocks/).
  *
- * The block is dynamic: the HTML is produced in PHP, so changing the markup never invalidates
- * content already saved in posts (no "block validation error" in the editor).
+ * Nothing here names an individual block: adding one means adding a directory with a block.json,
+ * not editing PHP. Dynamic blocks bring their own render.php, which WordPress picks up from the
+ * metadata, so this module never grows render callbacks either.
  */
 final class Module implements ModuleContract {
+
+	/**
+	 * Directory holding the built blocks, relative to the plugin root.
+	 */
+	const BUILD_DIR = 'build';
 
 	/**
 	 * Plugin instance.
@@ -55,69 +59,34 @@ final class Module implements ModuleContract {
 	}
 
 	/**
-	 * Registers the blocks from their block.json metadata.
+	 * Registers all built blocks from their block.json metadata.
 	 */
 	public function register_blocks(): void {
-		$manifest = MY_PLUGIN_DIR . 'build/item-list/block.json';
-
-		if ( ! is_readable( $manifest ) ) {
-			// A missing build (fresh clone, module disabled) must never take the plugin down.
-			return;
+		foreach ( $this->block_directories() as $directory ) {
+			register_block_type( $directory );
 		}
-
-		register_block_type(
-			dirname( $manifest ),
-			array( 'render_callback' => array( $this, 'render_item_list' ) )
-		);
 	}
 
 	/**
-	 * Renders the item list block.
+	 * Directories under build/ that contain a block.json.
 	 *
-	 * @param array<string, mixed> $attributes Block attributes.
-	 *
-	 * @return string
+	 * @return string[]
 	 */
-	public function render_item_list( $attributes ): string {
-		$attributes = is_array( $attributes ) ? $attributes : array();
-		$limit      = isset( $attributes['limit'] )
-			? max( 1, (int) $attributes['limit'] )
-			: (int) Settings::get( 'items_per_page', 10 );
+	public function block_directories(): array {
+		$build = MY_PLUGIN_DIR . self::BUILD_DIR;
 
-		if ( ! post_type_exists( ContentType::POST_TYPE ) ) {
-			return '';
+		// A missing build (fresh clone, module removed, `npm run build` never ran) must never take
+		// the site down - the plugin simply registers no blocks.
+		if ( ! is_dir( $build ) ) {
+			return array();
 		}
 
-		$posts = get_posts(
-			array(
-				'post_type'      => ContentType::POST_TYPE,
-				'post_status'    => 'publish',
-				'posts_per_page' => $limit,
-			)
-		);
+		$found = glob( $build . '/*/block.json' );
 
-		if ( ! $posts ) {
-			return sprintf(
-				'<p %1$s>%2$s</p>',
-				wp_kses_data( get_block_wrapper_attributes() ),
-				esc_html__( 'No items to show.', 'my-plugin' )
-			);
+		if ( ! is_array( $found ) ) {
+			return array();
 		}
 
-		$items = '';
-
-		foreach ( $posts as $post ) {
-			$items .= sprintf(
-				'<li><a href="%1$s">%2$s</a></li>',
-				esc_url( (string) get_permalink( $post ) ),
-				esc_html( get_the_title( $post ) )
-			);
-		}
-
-		return sprintf(
-			'<ul %1$s>%2$s</ul>',
-			wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'my-plugin-item-list' ) ) ),
-			$items // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts above.
-		);
+		return array_map( 'dirname', $found );
 	}
 }

@@ -46,7 +46,7 @@ export async function run( argv ) {
 	for ( const suite of suites ) {
 		// Unit tests and linters never load WordPress, so the edition is irrelevant for them:
 		// they run once per PHP version per package instead of once per combination.
-		const editionless = [ 'unit', 'lint', 'analyse', 'plugin-check' ].includes( suite );
+		const editionless = [ 'unit', 'types', 'lint', 'analyse', 'plugin-check' ].includes( suite );
 		const combos = editionless
 			? allPackages().map( ( pkg ) => ( { edition: null, pkg } ) )
 			: editions.flatMap( ( edition ) =>
@@ -100,7 +100,7 @@ function normalizeSuites( requested ) {
 	const out = [];
 	for ( const name of requested ) {
 		if ( name === 'all' ) {
-			out.push( 'lint', 'analyse', 'unit', 'integration', 'e2e', 'plugin-check' );
+			out.push( 'lint', 'analyse', 'types', 'unit', 'integration', 'e2e', 'plugin-check' );
 			continue;
 		}
 		if ( ! SUITES.includes( name ) ) {

@@ -5,12 +5,17 @@
 	"moduleClass": "MyVendor\\MyPlugin\\Modules\\Blocks\\Module",
 	"paths": [
 		"src/Modules/Blocks",
-		"assets/blocks"
+		"blocks",
+		"types",
+		"build.mjs",
+		"tsconfig.json"
 	],
 	"tests": [],
 	"npmDependencies": [
-		"@wordpress/scripts",
-		"@wordpress/server-side-render"
+		"vite",
+		"typescript",
+		"sass",
+		"@wordpress/dependency-extraction-webpack-plugin"
 	],
-	"notes": "Removing this drops the whole JavaScript build. Delete plugins/<slug>/build afterwards, and the block case in tests/e2e/free/items.spec.js."
+	"notes": "Removing this drops the whole TypeScript/Vite build. Delete plugins/<slug>/build afterwards, and the block cases in tests/e2e/free/blocks.spec.ts."
 }

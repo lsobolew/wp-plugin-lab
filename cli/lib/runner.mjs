@@ -3,11 +3,12 @@ import path from 'node:path';
 import { paths, ensureDir } from './paths.mjs';
 import { pluginDirs, pluginsForEdition, starter } from './config.mjs';
 import { compose, serviceStatus, syncCompose, withProfiles } from './docker.mjs';
+import { run as hostRun } from './proc.mjs';
 import { waitForHealthy } from './health.mjs';
 import { resultFile, writeSyntheticResult, readSummary } from './junit.mjs';
 import { log, c } from './log.mjs';
 
-export const SUITES = [ 'unit', 'integration', 'e2e', 'lint', 'analyse', 'plugin-check' ];
+export const SUITES = [ 'unit', 'integration', 'e2e', 'types', 'lint', 'analyse', 'plugin-check' ];
 
 /** Plugin directory inside the container. */
 const containerPluginPath = ( dir ) => `/var/www/html/wp-content/plugins/${ dir }`;
@@ -205,6 +206,46 @@ export async function runSuite( {
 		);
 
 		return { ok: code === 0, file: junitHost };
+	}
+
+	if ( suite === 'types' ) {
+		// TypeScript runs on the host: Vite only transpiles, so nothing would ever check the types
+		// unless it is a step of its own. No container needed - this never touches WordPress.
+		const pluginDir = path.join( paths.plugins, pkg.dir );
+		const manifest = path.join( pluginDir, 'package.json' );
+
+		if ( ! fs.existsSync( manifest ) ) {
+			emit( `${ pkg.dir }: no package.json, nothing to type check\n` );
+
+			return { ok: true, file: null };
+		}
+
+		const scripts = JSON.parse( fs.readFileSync( manifest, 'utf8' ) ).scripts || {};
+
+		if ( ! scripts.types ) {
+			emit( `${ pkg.dir }: no "types" script, skipping\n` );
+
+			return { ok: true, file: null };
+		}
+
+		let output = '';
+		const { code } = await hostRun( 'npm', [ 'run', '--silent', 'types' ], {
+			cwd: pluginDir,
+			onData: ( chunk ) => {
+				output += chunk;
+				emit( chunk );
+			},
+		} );
+
+		const file = writeSyntheticResult( {
+			target: target.id,
+			edition: pkg.key,
+			suite,
+			passed: code === 0,
+			output,
+		} );
+
+		return { ok: code === 0, file };
 	}
 
 	if ( suite === 'plugin-check' ) {

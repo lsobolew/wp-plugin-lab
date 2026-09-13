@@ -85,6 +85,27 @@ export async function run() {
 		log.warn( 'No plugin directories in plugins/ - run ./bin/wpx init' );
 	}
 
+	// The lab itself is a dependency like any other: a repository created from the starter keeps a
+	// frozen copy of the tooling until someone runs `wpx upgrade`.
+	const labLock = path.join( paths.root, 'lab.lock.json' );
+
+	if ( fs.existsSync( labLock ) ) {
+		const lock = JSON.parse( fs.readFileSync( labLock, 'utf8' ) );
+		const ageDays = Math.floor(
+			( Date.now() - new Date( lock.upgradedAt ).getTime() ) / 86400000
+		);
+
+		if ( ageDays > 60 ) {
+			log.warn(
+				`Lab infrastructure last upgraded ${ ageDays } days ago - run ./bin/wpx upgrade`
+			);
+		} else {
+			log.ok( `Lab infrastructure: ${ lock.commit.slice( 0, 7 ) }, ${ ageDays } days old` );
+		}
+	} else {
+		log.dim( '  Lab infrastructure: never upgraded (./bin/wpx upgrade status)' );
+	}
+
 	// Agent skills are part of the setup: an outdated pack quietly teaches outdated WordPress.
 	const skillsLock = path.join( paths.root, '.claude', 'wplab-skills.lock.json' );
 

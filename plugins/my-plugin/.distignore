@@ -7,7 +7,11 @@
 .phpcs.cache
 .phpunit.result.cache
 node_modules
-assets/blocks
+blocks
+types
+build.mjs
+tsconfig.json
+eslint.config.mjs
 tests
 phpunit-unit.xml.dist
 phpunit-integration.xml.dist
