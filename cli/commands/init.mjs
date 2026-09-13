@@ -200,6 +200,18 @@ export async function run( argv ) {
 	// starter.json carries the old slug in free-text fields too (plugin URI, description), so it
 	// goes through the same rewrite before the structured fields are set below.
 	files.push( paths.starter );
+
+	// Two CI files name the plugin directly and cannot read starter.json: Dependabot has no
+	// variables, and the WordPress.org deploy needs a literal slug. Left alone they would keep
+	// pointing at the starter's plugin after a rename.
+	for ( const relative of [
+		'.github/dependabot.yml',
+		'.github/workflows/deploy-wporg.yml',
+	] ) {
+		const file = path.join( paths.root, relative );
+
+		if ( fs.existsSync( file ) ) files.push( file );
+	}
 	let changed = 0;
 
 	for ( const file of files ) {
