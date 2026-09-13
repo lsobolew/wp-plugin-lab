@@ -66,19 +66,22 @@
 				"slug": "twentytwentyfive",
 				"alias": "tt5",
 				"source": "wporg",
-				"type": "block"
+				"type": "block",
+				"requiresWp": "6.7"
 			},
 			{
 				"slug": "twentytwentyfour",
 				"alias": "tt4",
 				"source": "wporg",
-				"type": "block"
+				"type": "block",
+				"requiresWp": "6.4"
 			},
 			{
 				"slug": "twentytwentyone",
 				"alias": "tt1",
 				"source": "wporg",
-				"type": "classic"
+				"type": "classic",
+				"requiresWp": "5.6"
 			}
 		]
 	}

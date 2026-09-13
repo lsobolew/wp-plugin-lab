@@ -136,6 +136,9 @@ function resolveThemes( cfg ) {
 		source: theme.source || 'wporg',
 		type: theme.type || 'block',
 		path: theme.path || `themes/${ theme.slug }`,
+		// Default themes only exist from the release they shipped with: Twenty Twenty-Five cannot
+		// be installed on WordPress 6.6, and asking for it there fails the whole run.
+		requiresWp: theme.requiresWp || '',
 	} ) );
 
 	const fallback = raw.default || available[ 0 ]?.slug || '';
@@ -189,7 +192,41 @@ export function themesForTarget( matrix, targetId, override ) {
 		? themes.sweep.themes
 		: [ themes.default ];
 
-	return slugs.map( ( slug ) => bySlug( slug ) ).filter( Boolean );
+	const target = matrix.targets.find( ( t ) => t.id === targetId );
+	const usable = slugs
+		.map( ( slug ) => bySlug( slug ) )
+		.filter( Boolean )
+		.filter( ( theme ) => themeRunsOn( theme, target ) );
+
+	// Nothing installable here: run on whatever the site already uses rather than failing. The
+	// result carries no theme name, because no particular theme was asserted.
+	return usable.length ? usable : [ null ];
+}
+
+/** Whether a theme can be installed on a given target. */
+function themeRunsOn( theme, target ) {
+	if ( ! theme.requiresWp || ! target ) return true;
+
+	// nightly and the newest release are always ahead of any published requirement.
+	if ( ! /^\d/.test( target.wpVersion ) ) return true;
+
+	return version_compare_ge( target.wpVersion, theme.requiresWp );
+}
+
+/** `a >= b` for WordPress-style two- or three-part versions. */
+function version_compare_ge( a, b ) {
+	const parse = ( value ) => String( value ).split( '.' ).map( Number );
+	const left = parse( a );
+	const right = parse( b );
+
+	for ( let i = 0; i < Math.max( left.length, right.length ); i++ ) {
+		const x = left[ i ] || 0;
+		const y = right[ i ] || 0;
+
+		if ( x !== y ) return x > y;
+	}
+
+	return true;
 }
 
 async function needsBranches( cfg ) {
