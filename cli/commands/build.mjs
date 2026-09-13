@@ -69,8 +69,14 @@ async function packagePlugin( target, dir, version, onLog ) {
 			`[ -f ${ source }/composer.lock ] && cp ${ source }/composer.lock ${ stage }/ || true; ` +
 			`composer install --working-dir=${ stage } --no-dev --optimize-autoloader --no-interaction --quiet || true; ` +
 			`rm -f ${ stage }/composer.json ${ stage }/composer.lock; fi`,
-		// A plugin without third-party libraries should not ship an empty vendor/ directory.
+		// A plugin whose only Composer requirement is PHP itself has no third-party code to ship,
+		// and its own autoloader already covers its classes. Shipping vendor/ anyway leaves a
+		// directory with nothing but Composer's autoloader in it - which WordPress.org flags,
+		// because a vendor/ directory without a composer.json looks like a packaging mistake.
 		`if [ -d ${ stage }/vendor ] && [ -z "$(ls -A ${ stage }/vendor 2>/dev/null)" ]; then rm -rf ${ stage }/vendor; fi`,
+		`if [ -d ${ stage }/vendor ] && [ ! -d ${ stage }/vendor/composer/../../vendor/bin ]; then ` +
+			`REAL_DEPS="$(find ${ stage }/vendor -maxdepth 1 -mindepth 1 -type d ! -name composer | wc -l)"; ` +
+			`[ "$REAL_DEPS" = "0" ] && rm -rf ${ stage }/vendor || true; fi`,
 		`rm -rf /wplab/build/${ dir }-${ version }.zip`,
 		`cd /wplab/build && zip -rq ${ dir }-${ version }.zip ${ dir } -x '*.DS_Store'`,
 		`echo "packaged ${ dir }-${ version }.zip"`,

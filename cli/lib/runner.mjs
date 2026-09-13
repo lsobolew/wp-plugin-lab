@@ -254,14 +254,33 @@ export async function runSuite( {
 
 		// Plugin Check is the same tool the WordPress.org review team runs, so failing it here
 		// means the submission would be rejected there.
+		//
+		// It runs against a copy assembled the way a release is assembled, never against the
+		// working tree. Checking the sources reports every development file - phpcs.xml.dist,
+		// .distignore, the test suite - as something that "is not permitted", none of which ever
+		// ships. Those false positives are worse than no signal, because they teach you to skim
+		// past the report that also carries the real problems.
+		const staging = `wplab-check-${ pkg.dir }`;
+		const sourcePath = containerPluginPath( pkg.dir );
+		const stagingPath = containerPluginPath( staging );
+
 		const script = [
-			'wp --allow-root plugin is-installed plugin-check',
-			'|| wp --allow-root plugin install plugin-check --activate',
-			'; wp --allow-root plugin activate plugin-check',
-			// Dev-only directories never ship in the zip, so checking them only produces noise.
-			`; wp --allow-root plugin check ${ pkg.dir } --format=table --severity=5` +
-				' --exclude-directories=tests,vendor,node_modules,assets,build',
-		].join( ' ' );
+			`rm -rf ${ stagingPath }`,
+			`mkdir -p ${ stagingPath }`,
+			// vendor/ and node_modules/ hold development dependencies here; a release either ships a
+			// production vendor/ built by `wpx build` or none at all, so neither belongs in the copy
+			// the reviewer's tool looks at.
+			`rsync -a --exclude-from=${ sourcePath }/.distignore --exclude='.git' --exclude='vendor' ` +
+				`--exclude='node_modules' ${ sourcePath }/ ${ stagingPath }/`,
+			'( wp --allow-root plugin is-installed plugin-check' +
+				' || wp --allow-root plugin install plugin-check --activate )',
+			'wp --allow-root plugin activate plugin-check || true',
+			// --slug keeps the checks that derive from the plugin slug - the text domain above all -
+			// pointed at the real name rather than at this throwaway directory.
+			`wp --allow-root plugin check ${ staging } --slug=${ pkg.dir } --format=table --severity=5; STATUS=$?`,
+			`rm -rf ${ stagingPath }`,
+			'exit $STATUS',
+		].join( '; ' );
 
 		let output = '';
 		const { code } = await compose( [ 'exec', '-T', target.service, 'bash', '-lc', script ], {

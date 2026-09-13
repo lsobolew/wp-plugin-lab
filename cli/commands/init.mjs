@@ -66,6 +66,16 @@ function validate( answers ) {
 		);
 	}
 
+	// WordPress.org rejects these outright, and finding out at submission time is a bad surprise.
+	for ( const term of [ 'wordpress', 'plugin' ] ) {
+		if ( answers.slug.includes( term ) ) {
+			log.warn(
+				`The slug contains "${ term }", which WordPress.org does not allow in plugin ` +
+					'names or slugs. Fine for a private plugin; rename before submitting one.'
+			);
+		}
+	}
+
 	if ( ! /^[A-Za-z][A-Za-z0-9]*\\[A-Za-z][A-Za-z0-9]*$/.test( answers.namespace ) ) {
 		throw new UserError(
 			`"${ answers.namespace }" should look like Vendor\\PluginName.`
@@ -252,6 +262,44 @@ export async function run( argv ) {
 		}
 
 		renames.push( `${ oldDir }/ -> ${ newDir }/` );
+	}
+
+	// The plugin headers carry example.com until somebody replaces it, and Plugin Check rejects
+	// that domain outright. The starter.json values are the obvious source.
+	if ( ! dryRun ) {
+		const starterData = readJson( paths.starter );
+
+		for ( const [ dir, isPro ] of [
+			[ to.slug, false ],
+			[ `${ to.slug }-pro`, true ],
+		] ) {
+			const file = path.join( paths.plugins, dir, `${ dir }.php` );
+
+			if ( ! fs.existsSync( file ) ) continue;
+
+			let header = fs.readFileSync( file, 'utf8' );
+
+			const pluginUri = starterData.pluginUri || '';
+			const authorUri = starterData.authorUri || '';
+
+			if ( pluginUri ) {
+				header = header.replace(
+					/^(\s*\*\s*Plugin URI:\s*).+$/m,
+					`$1${ pluginUri }${ isPro ? '-pro' : '' }`
+				);
+				header = header.replace( /^(\s*\*\s*Update URI:\s*).+$/m, `$1${ pluginUri }-pro` );
+			}
+
+			if ( authorUri ) {
+				header = header.replace( /^(\s*\*\s*Author URI:\s*).+$/m, `$1${ authorUri }` );
+			}
+
+			if ( answers.author ) {
+				header = header.replace( /^(\s*\*\s*Author:\s*).+$/m, `$1${ answers.author }` );
+			}
+
+			fs.writeFileSync( file, header );
+		}
 	}
 
 	if ( ! dryRun ) {

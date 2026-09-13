@@ -1,5 +1,6 @@
 # Files that never ship in the distributable package.
 .git
+.gitkeep
 .github
 .distignore
 .editorconfig
