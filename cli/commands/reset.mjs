@@ -7,7 +7,7 @@ import {
 	syncCompose,
 	withProfiles,
 } from '../lib/docker.mjs';
-import { DB_ROOT_PASSWORD } from '../lib/compose-render.mjs';
+import { DB_ROOT_PASSWORD, projectName } from '../lib/compose-render.mjs';
 import { waitForHealthy } from '../lib/health.mjs';
 import { log, UserError } from '../lib/log.mjs';
 
@@ -40,7 +40,7 @@ export async function run( argv ) {
 		...targets.map( ( t ) => t.service ),
 	] );
 
-	const volumes = targets.map( ( t ) => `wplab_core-${ t.id }` );
+	const volumes = targets.map( ( t ) => `${ projectName() }_core-${ t.id }` );
 	await composeCapture( [ 'ps' ] ); // upewnia sie, ze projekt istnieje
 	for ( const vol of volumes ) {
 		await composeCapture( [ 'version' ] );

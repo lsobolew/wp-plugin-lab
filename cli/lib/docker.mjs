@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import { paths } from './paths.mjs';
-import { writeCompose, PROJECT, ADMIN_USER, ADMIN_PASSWORD } from './compose-render.mjs';
+import { writeCompose, projectName, ADMIN_USER, ADMIN_PASSWORD } from './compose-render.mjs';
 import { run, capture } from './proc.mjs';
 import { UserError } from './log.mjs';
 
-export { PROJECT, ADMIN_USER, ADMIN_PASSWORD };
+export { projectName, ADMIN_USER, ADMIN_PASSWORD };
 
 function baseArgs() {
 	const args = [ 'compose', '-f', paths.compose ];

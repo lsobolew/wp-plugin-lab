@@ -1,9 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { paths } from './paths.mjs';
-import { pluginDirs } from './config.mjs';
+import { pluginDirs, starter } from './config.mjs';
 
-export const PROJECT = 'wplab';
+/**
+ * Docker Compose project name, derived from the plugin slug.
+ *
+ * Two repositories built from this starter would otherwise share one project, one set of
+ * containers and one set of volumes - so working on a second plugin would quietly tear down the
+ * first one's environment.
+ */
+export function projectName() {
+	const slug = ( starter().slug || 'plugin' ).replace( /[^a-z0-9-]/gi, '-' ).toLowerCase();
+
+	return `wplab-${ slug }`;
+}
 export const DB_ROOT_PASSWORD = 'wordpress';
 export const ADMIN_USER = 'admin';
 export const ADMIN_PASSWORD = 'password';
@@ -32,7 +43,7 @@ export function renderCompose( matrix ) {
 	const lines = [];
 	lines.push( '# GENERATED FILE - do not edit by hand.' );
 	lines.push( '# Source: wp-matrix.json + starter.json; regenerate with ./bin/wpx compose' );
-	lines.push( `name: ${ PROJECT }` );
+	lines.push( `name: ${ projectName() }` );
 	lines.push( '' );
 	lines.push( 'services:' );
 
