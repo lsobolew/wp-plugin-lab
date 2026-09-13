@@ -1,0 +1,21 @@
+{
+  "//": "Wersje WordPressa, na ktorych ma dzialac plugin. 'latest' / 'latest-1' / 'latest-2' sa rozwiazywane z api.wordpress.org, 'nightly' to build z trunka.",
+  "targets": [
+    { "id": "latest",  "wp": "latest",   "php": "8.4", "port": 8091 },
+    { "id": "prev",    "wp": "latest-1", "php": "8.3", "port": 8092 },
+    { "id": "lts",     "wp": "6.9",      "php": "8.2", "port": 8093 },
+    { "id": "min",     "wp": "6.8",      "php": "7.4", "port": 8094 },
+    { "id": "nightly", "wp": "nightly",  "php": "8.4", "port": 8095, "multisite": true }
+  ],
+  "editions": ["free", "pro"],
+  "defaults": {
+    "db": "mariadb:11",
+    "xdebug": "off",
+    "//locale": "en_US celowo - @wordpress/e2e-test-utils-playwright celuje w angielskie wp-admin",
+    "locale": "en_US"
+  },
+  "ports": {
+    "dashboard": 7777,
+    "mailpitUi": 8025
+  }
+}

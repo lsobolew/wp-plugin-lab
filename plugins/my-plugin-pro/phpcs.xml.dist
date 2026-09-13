@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<ruleset name="My Plugin Pro">
+	<description>Standard kodowania WordPressa dla dodatku Pro.</description>
+
+	<file>.</file>
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/build/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="basepath" value="."/>
+	<arg name="parallel" value="8"/>
+	<arg name="colors"/>
+	<arg value="ps"/>
+
+	<!-- Wersje z naglowka wtyczki: PHPCS sam wylapie uzycie zbyt nowych funkcji WP i PHP. -->
+	<config name="minimum_wp_version" value="6.6"/>
+	<config name="testVersion" value="7.4-"/>
+
+	<rule ref="WordPress">
+		<!-- Klasy trzymamy w ukladzie PSR-4 (Container.php, a nie class-container.php),
+		     bo tego wymaga autoloader. Reszta standardu WordPressa zostaje. -->
+		<exclude name="WordPress.Files.FileName"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="my-plugin-pro"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- Testy nie musza dokumentowac kazdej metody ani stosowac prefiksow globalnych. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+</ruleset>

@@ -1,0 +1,75 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { paths, ensureDir } from './paths.mjs';
+import { starter } from './config.mjs';
+import { ADMIN_USER, ADMIN_PASSWORD } from './compose-render.mjs';
+import { run } from './proc.mjs';
+import { applyEdition, ensureUp } from './runner.mjs';
+import { resultFile } from './junit.mjs';
+
+const BROWSER_MARKER = () => path.join( paths.cache, 'playwright-chromium.installed' );
+
+/** Artifact directory for one target+edition pair (must match playwright.config.mjs). */
+const artifactsDir = ( target, edition ) =>
+	path.join( paths.work, 'artifacts', `${ target.id }-${ edition }` );
+
+/** Downloads the browser on the first e2e run. */
+async function ensureBrowser( onLog ) {
+	ensureDir( paths.cache );
+	if ( fs.existsSync( BROWSER_MARKER() ) ) return true;
+
+	onLog?.( 'Downloading the Playwright browser (one-off)...\n' );
+	const { code } = await run( 'npx', [ 'playwright', 'install', 'chromium' ], {
+		cwd: paths.root,
+		onData: onLog,
+	} );
+
+	if ( code === 0 ) fs.writeFileSync( BROWSER_MARKER(), new Date().toISOString() );
+	return code === 0;
+}
+
+/**
+ * Runs Playwright against one WordPress instance in one edition.
+ */
+export async function runE2e( { matrix, target, edition, filter, onLog, headed } ) {
+	const emit = ( text ) => onLog?.( text );
+	const s = starter();
+
+	emit(
+		`\n${ '='.repeat( 60 ) }\n${ target.id }-${ edition }-e2e (WP ${ target.wpVersion } / PHP ${ target.php })\n${ '='.repeat( 60 ) }\n`
+	);
+
+	const ready = await ensureUp( matrix, [ target ], { onLog: emit } );
+	if ( ! ready ) return { ok: false, file: null };
+
+	if ( ! ( await ensureBrowser( emit ) ) ) return { ok: false, file: null };
+
+	await applyEdition( target, edition, { onLog: emit } );
+
+	const args = [ 'playwright', 'test', '--config', 'playwright.config.mjs' ];
+	if ( filter ) args.push( '--grep', filter );
+	if ( headed ) args.push( '--headed' );
+
+	const { code } = await run( 'npx', args, {
+		cwd: paths.root,
+		onData: emit,
+		env: {
+			WP_BASE_URL: target.url,
+			// @wordpress/e2e-test-utils-playwright keeps the login state for its requestUtils fixture
+			// under its own path (STORAGE_STATE_PATH), independent of `use.storageState` from the
+			// config. That default is ./artifacts - shared by every WordPress version. WordPress
+			// cookies are bound to the host and not to the port, so state from one instance silently
+			// "worked" on the next and REST calls hit the wrong site. Pin it per target.
+			WP_ARTIFACTS_PATH: artifactsDir( target, edition ),
+			STORAGE_STATE_PATH: path.join( artifactsDir( target, edition ), 'storage-states', 'admin.json' ),
+			WP_USERNAME: ADMIN_USER,
+			WP_PASSWORD: ADMIN_PASSWORD,
+			WPLAB_TARGET: target.id,
+			WPLAB_EDITION: edition,
+			WPLAB_FREE_DIR: s.editions?.free?.dir || 'my-plugin',
+			WPLAB_PRO_DIR: s.editions?.pro?.dir || 'my-plugin-pro',
+		},
+	} );
+
+	return { ok: code === 0, file: resultFile( { target: target.id, edition, suite: 'e2e' } ) };
+}

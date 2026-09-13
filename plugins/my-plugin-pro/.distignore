@@ -1,0 +1,18 @@
+# Files that never ship in the distributable package.
+.git
+.github
+.distignore
+.editorconfig
+.gitignore
+.phpcs.cache
+node_modules
+tests
+phpunit-unit.xml.dist
+phpunit-integration.xml.dist
+phpcs.xml.dist
+phpstan.neon.dist
+composer.json
+composer.lock
+package.json
+package-lock.json
+*.map
