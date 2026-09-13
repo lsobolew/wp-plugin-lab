@@ -54,6 +54,39 @@ The e2e suite has a test for exactly this (`tests/e2e/free/blocks.spec.ts`): it 
 fails if the editor flags it as invalid. Delete the `deprecated` import and watch it go red - that
 is the regression it is there to catch.
 
+## Capabilities change what gets saved
+
+WordPress filters post content through `wp_kses_post()` for every user without the
+`unfiltered_html` capability. Measured on WordPress 7.x:
+
+| Where | Who has `unfiltered_html` |
+|---|---|
+| Single site | administrator, editor |
+| **Multisite** | **super admin only** - a site administrator does not |
+
+So the person writing the plugin, testing as an administrator on their own machine, never sees what
+their users get. For a static block that is not cosmetic: KSES rewrites the stored markup, the
+markup stops matching what `save()` produces, and the next person to open the post is told the
+block contains invalid content.
+
+What actually survives, measured rather than assumed:
+
+| Survives | Stripped |
+|---|---|
+| `class`, `data-*` attributes | `<script>` |
+| CSS custom properties, `url()` values included | `mask-image`, `-webkit-mask-image` |
+| `background-color`, `width`, `height`, `display` | `behavior:` and other dangerous CSS |
+| Block delimiters (`<!-- wp:… -->`) | |
+
+The practical consequence: **do not write exotic CSS into the `style` attribute**. An icon built on
+`mask-image` has to put the URL into a custom property (`--icon: url(…)`, which survives) and let a
+stylesheet consume it. The direct version silently loses its styling for anyone who is not an
+administrator - and for everyone but the super admin on multisite.
+
+`tests/Integration/KsesCompatibilityTest.php` guards this: it asserts each block's saved markup
+passes through KSES untouched, and that an author saves byte-identical content to an administrator.
+Extend the provider when you add a block.
+
 ## The build
 
 Vite, driven by `cli/vite/wordpress-blocks.mjs`.

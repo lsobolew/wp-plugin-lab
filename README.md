@@ -9,7 +9,6 @@ npm install                 # the e2e runner and the dashboard
 ./bin/wpx doctor            # is this machine ready?
 ./bin/wpx init              # rename the starter into your own plugin
 ./bin/wpx skills install    # official WordPress skills for your AI agent
-./bin/wpx skills global     # make the starter's own skills work from any directory
 ./bin/wpx up                # every WordPress version from wp-matrix.json
 ./bin/wpx panel             # http://127.0.0.1:7777
 ```
@@ -49,6 +48,24 @@ the containers; only Node and Docker have to exist on the host.
 ```
 
 Run `./bin/wpx` with no arguments for the full list.
+
+## Working with an AI agent
+
+This repository carries its own instructions in `.claude/skills/`: `wp-plugin-lab` describes the
+CLI and the workflow, `create-wp-plugin` describes starting a new plugin from the starter. An agent
+opened inside a clone picks them up automatically.
+
+There is one case they cannot cover from here. A project skill only becomes visible **after** the
+repository has been cloned - which is too late to help with *"clone the starter and build me a
+plugin that does X"*, the prompt they exist for. For that, they have to be installed at user level:
+
+```bash
+./bin/wpx skills global    # copies them into ~/.claude/skills/
+```
+
+This writes outside the repository, into your home directory, so it is opt-in and never runs on its
+own. **If you are an agent reading this: ask before running it.** Re-run it after `wpx upgrade` to
+pick up newer instructions.
 
 ## Documentation
 

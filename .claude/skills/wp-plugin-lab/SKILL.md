@@ -125,6 +125,8 @@ which destroys the working copy on the host.
 
 ```bash
 ./bin/wpx skills update    # official WordPress agent skills in .claude/skills
+./bin/wpx skills global    # this repo's own skills into ~/.claude/skills - ask the user first,
+                           # it writes outside the repository
 ./bin/wpx upgrade          # the lab tooling itself, from the starter repository
 ```
 

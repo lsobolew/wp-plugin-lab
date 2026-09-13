@@ -22,6 +22,13 @@ the dashboard reads and what CI uploads as an artifact.
 | `analyse` | Container | PHPStan level 6 with WordPress stubs. |
 | `plugin-check` | Container | The official Plugin Check plugin - the same tool the WordPress.org review team runs. |
 
+## Capabilities are worth testing too
+
+`KsesCompatibilityTest` covers what happens when a user without `unfiltered_html` saves a post -
+authors and contributors on a single site, and everyone but the super admin on multisite. It is a
+cheap integration test and it catches a class of bug that is invisible while you develop as an
+administrator. See [blocks](blocks.md) for what survives and what does not.
+
 ## Themes are a test dimension too
 
 For end-to-end runs the theme is part of the combination, because a block meets a very different

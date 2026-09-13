@@ -68,7 +68,12 @@ npm --prefix plugins/<slug> install      # Vite, TypeScript, block dependencies
 ```
 
 `wpx skills install` puts the WordPress project's own guidance for blocks, REST, WP-CLI,
-performance and the plugin directory rules into `.claude/skills/`. **Read the relevant one before
+performance and the plugin directory rules into `.claude/skills/`.
+
+**Then offer, and do not assume:** ask the user whether to also run `./bin/wpx skills global`. That
+copies this starter's own two skills into `~/.claude/skills/`, which is what makes "clone the
+starter and build me a plugin" work from an empty directory next time. It writes outside the
+repository, into their home directory, so it needs their word first. **Read the relevant one before
 writing WordPress code** - they are more current than anything you remember. Which ones get
 installed is configured in `starter.json` → `skills.install`; add more with
 `./bin/wpx skills list` to see what exists.

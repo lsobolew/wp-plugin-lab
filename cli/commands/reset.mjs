@@ -53,8 +53,9 @@ export async function run( argv ) {
 		if ( code === 0 ) log.dim( `   removed volume ${ vol }` );
 	}
 
-	// The databases live in the shared db container, so we only drop the schemas.
+	// The databases live in the shared db container, so only the schemas are dropped.
 	const dbUp = await composeCapture( [ 'ps', '--quiet', 'db' ] );
+
 	if ( dbUp.stdout.trim() ) {
 		const sql = targets
 			.map(
@@ -62,15 +63,26 @@ export async function run( argv ) {
 					`DROP DATABASE IF EXISTS \\\`${ t.dbName }\\\`; DROP DATABASE IF EXISTS \\\`${ t.testDbName }\\\`;`
 			)
 			.join( ' ' );
-		await compose( [
-			'exec',
-			'-T',
-			'db',
-			'sh',
-			'-c',
-			`mysql -uroot -p${ DB_ROOT_PASSWORD } -e "${ sql }"`,
-		] );
+
+		// MariaDB 11 renamed the client to `mariadb` and no longer ships a `mysql` symlink, so the
+		// binary has to be discovered rather than assumed. This used to fail silently, which left
+		// the old database in place and made a reset look successful while changing nothing.
+		const script =
+			`CLIENT="$(command -v mariadb || command -v mysql)"; ` +
+			`[ -n "$CLIENT" ] || { echo "no MariaDB/MySQL client in the db container" >&2; exit 1; }; ` +
+			`"$CLIENT" -uroot -p${ DB_ROOT_PASSWORD } -e "${ sql }"`;
+
+		const { code } = await compose( [ 'exec', '-T', 'db', 'sh', '-c', script ] );
+
+		if ( code !== 0 ) {
+			throw new UserError(
+				'Could not drop the databases - the reset would leave the old install in place.'
+			);
+		}
+
 		log.dim( '   databases dropped' );
+	} else {
+		log.warn( 'Database container is not running; schemas were left untouched.' );
 	}
 
 	if ( flags[ 'no-up' ] ) {
