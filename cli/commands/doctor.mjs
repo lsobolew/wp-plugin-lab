@@ -59,7 +59,7 @@ export async function run() {
 		...matrix.targets.map( ( t ) => ( { label: `target ${ t.id }`, port: t.port } ) ),
 		{ label: 'dashboard', port: matrix.ports?.dashboard || 7777 },
 		{ label: 'mailpit', port: matrix.ports?.mailpitUi || 8025 },
-		{ label: 'database', port: 13306 },
+		{ label: 'database', port: matrix.ports?.database || 13306 },
 	];
 	const busy = [];
 	for ( const p of ports ) {

@@ -45,7 +45,8 @@
 	},
 	"ports": {
 		"dashboard": 7777,
-		"mailpitUi": 8025
+		"mailpitUi": 8025,
+		"database": 13306
 	},
 	"themes": {
 		"//": "Themes the block is tested against. 'sweep' says where the full set runs; every other target uses 'default'. A block behaves differently on a block theme than on a classic one, which is why the set mixes both.",

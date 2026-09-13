@@ -57,7 +57,9 @@ export function renderCompose( matrix ) {
 	lines.push( `      MARIADB_ROOT_PASSWORD: ${ q( DB_ROOT_PASSWORD ) }` );
 	lines.push( '      MARIADB_ROOT_HOST: "%"' );
 	lines.push( '    ports:' );
-	lines.push( '      - "13306:3306"' );
+	// Exposed so a database client on the host can reach it; configurable because two projects
+	// built from this starter would otherwise fight over the same host port.
+	lines.push( `      - "${ matrix.ports?.database || 13306 }:3306"` );
 	lines.push( '    volumes:' );
 	lines.push( '      - db-data:/var/lib/mysql' );
 	lines.push( '    healthcheck:' );
