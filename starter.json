@@ -62,5 +62,10 @@
 			"wp-phpstan",
 			"wp-performance"
 		]
+	},
+	"lab": {
+		"//": "Where `./bin/wpx upgrade` pulls the lab infrastructure from. Point it at your own starter repository.",
+		"repo": "https://github.com/your-org/wp-plugin-lab.git",
+		"ref": ""
 	}
 }

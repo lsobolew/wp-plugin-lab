@@ -18,6 +18,7 @@ const COMMANDS = {
 	test: 'Run tests: unit | integration | e2e | lint | analyse | all.',
 	panel: 'Open the dashboard for the matrix and the tests (127.0.0.1:7777).',
 	skills: 'Install or update the official WordPress agent skills.',
+	upgrade: 'Pull the newest lab infrastructure from the starter repository.',
 	feature: 'List, remove or restore plugin features (modules).',
 	hooks: 'Enable the versioned git hooks (pre-commit PHPCS).',
 	build: 'Build distributable zips in dist/ (--edition=free|pro|both).',

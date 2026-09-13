@@ -3,7 +3,7 @@ import path from 'node:path';
 import { parseArgs, listFlag } from '../lib/args.mjs';
 import { paths, ensureDir, readJson, writeJson } from '../lib/paths.mjs';
 import { starter } from '../lib/config.mjs';
-import { run as spawn, capture } from '../lib/proc.mjs';
+import { syncCheckout as gitSync, remoteHead } from '../lib/git-source.mjs';
 import { log, c, UserError } from '../lib/log.mjs';
 
 const DEFAULTS = {
@@ -34,63 +34,19 @@ function readLock() {
 	return fs.existsSync( file ) ? readJson( file ) : null;
 }
 
-/** Default branch of the remote, used when starter.json pins no ref. */
-async function defaultBranch( repo ) {
-	const result = await capture( 'git', [ 'ls-remote', '--symref', repo, 'HEAD' ] );
-	const match = result.stdout.match( /^ref:\s+refs\/heads\/(\S+)\s+HEAD/m );
-
-	if ( ! match ) {
-		throw new UserError( `Could not determine the default branch of ${ repo }.` );
-	}
-
-	return match[ 1 ];
-}
-
-/** Clones the upstream repository or fast-forwards an existing checkout. */
+/** Clones or fast-forwards the skills checkout; the git mechanics live in lib/git-source.mjs. */
 async function syncCheckout( cfg, { onLog } = {} ) {
-	const dir = CHECKOUT();
-	ensureDir( paths.cache );
+	const checkout = await gitSync( {
+		repo: cfg.repo,
+		ref: cfg.ref,
+		name: 'agent-skills',
+		label: 'skills repository',
+		onLog,
+	} );
 
-	cfg.ref = cfg.ref || ( await defaultBranch( cfg.repo ) );
+	cfg.ref = checkout.ref;
 
-	if ( ! fs.existsSync( path.join( dir, '.git' ) ) ) {
-		fs.rmSync( dir, { recursive: true, force: true } );
-		log.step( `Cloning ${ cfg.repo } (${ cfg.ref })` );
-
-		const { code } = await spawn(
-			'git',
-			[ 'clone', '--depth=1', '--branch', cfg.ref, cfg.repo, dir ],
-			{ onData: onLog }
-		);
-
-		if ( code !== 0 ) {
-			throw new UserError( 'Could not clone the skills repository.' );
-		}
-	} else {
-		log.step( `Fetching ${ cfg.repo } (${ cfg.ref })` );
-
-		// --depth=1 keeps the checkout tiny; we never need the upstream history locally.
-		const fetch = await spawn(
-			'git',
-			[ '-C', dir, 'fetch', '--depth=1', 'origin', cfg.ref ],
-			{ onData: onLog }
-		);
-
-		if ( fetch.code !== 0 ) {
-			throw new UserError( 'Could not fetch the skills repository.' );
-		}
-
-		await spawn( 'git', [ '-C', dir, 'reset', '--hard', 'FETCH_HEAD' ], { onData: onLog } );
-	}
-
-	const head = await capture( 'git', [ '-C', dir, 'rev-parse', 'HEAD' ] );
-	const date = await capture( 'git', [ '-C', dir, 'log', '-1', '--format=%cI' ] );
-
-	return {
-		dir,
-		commit: head.stdout.trim(),
-		committedAt: date.stdout.trim(),
-	};
+	return checkout;
 }
 
 /** Skill names available in the checkout. */
@@ -217,9 +173,7 @@ async function status() {
 	log.blank();
 
 	// Ask the remote for the current head without touching the local checkout.
-	const ref = cfg.ref || lock.ref;
-	const remote = await capture( 'git', [ 'ls-remote', cfg.repo, `refs/heads/${ ref }` ] );
-	const head = remote.stdout.trim().split( /\s+/ )[ 0 ] || '';
+	const head = await remoteHead( cfg.repo, cfg.ref || lock.ref );
 
 	if ( ! head ) {
 		log.warn( 'Could not reach the skills repository to check for updates.' );
