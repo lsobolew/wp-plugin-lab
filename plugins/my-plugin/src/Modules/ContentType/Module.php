@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 namespace MyVendor\MyPlugin\Modules\ContentType;
 
+use MyVendor\MyPlugin\Core\ActivationAware;
+use MyVendor\MyPlugin\Core\Activator;
 use MyVendor\MyPlugin\Core\Module as ModuleContract;
 use MyVendor\MyPlugin\Core\Plugin;
 
@@ -17,7 +19,25 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Registers the "myplugin_item" post type, its taxonomy and a REST-visible meta field.
  */
-final class Module implements ModuleContract {
+final class Module implements ModuleContract, ActivationAware {
+
+	/**
+	 * Asks for a rewrite flush, because this module is what adds rewrite rules.
+	 *
+	 * Not done here and now: the post types are registered on `init`, which has not run yet when
+	 * WordPress calls the activation hook, so flushing at this point would rebuild the rules
+	 * without them. The flag is picked up on the next `wp_loaded`, once they exist.
+	 */
+	public static function on_activate(): void {
+		update_option( Activator::FLUSH_FLAG, '1' );
+	}
+
+	/**
+	 * Drops the rules this module's post types added.
+	 */
+	public static function on_deactivate(): void {
+		flush_rewrite_rules();
+	}
 
 	/**
 	 * Post type name (20 characters max).

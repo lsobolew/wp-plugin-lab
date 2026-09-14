@@ -21,7 +21,9 @@ final class Deactivator {
 	 */
 	public static function deactivate(): void {
 		delete_option( Activator::FLUSH_FLAG );
-		wp_clear_scheduled_hook( 'myplugin_daily_maintenance' );
-		flush_rewrite_rules();
+
+		foreach ( Activator::activation_aware_modules() as $class_name ) {
+			$class_name::on_deactivate();
+		}
 	}
 }

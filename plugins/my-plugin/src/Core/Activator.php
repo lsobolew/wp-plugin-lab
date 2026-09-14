@@ -12,9 +12,11 @@ namespace MyVendor\MyPlugin\Core;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Sets up the initial state. Note that modules are not registered yet at activation time, so
- * instead of rebuilding the rewrite rules right away we leave a flag - `Upgrader` flushes them on
- * the next `wp_loaded`, once the custom post types have been declared.
+ * Records the data version, then lets each module do its own activation work.
+ *
+ * Core deliberately knows nothing about what that work is. A module that registers post types asks
+ * for a rewrite flush; one with settings seeds its defaults; a plugin with neither does neither,
+ * without anybody having to remember to take the code out.
  */
 final class Activator {
 
@@ -51,12 +53,44 @@ final class Activator {
 	 * Initializes a single site.
 	 */
 	private static function activate_single_site(): void {
-		if ( false === get_option( Settings::OPTION, false ) ) {
-			add_option( Settings::OPTION, Settings::defaults() );
+		update_option( self::VERSION_OPTION, MY_PLUGIN_VERSION );
+
+		foreach ( self::activation_aware_modules() as $class_name ) {
+			$class_name::on_activate();
+		}
+	}
+
+	/**
+	 * Module classes that have activation work of their own.
+	 *
+	 * Read straight from config/modules.php rather than from the booted plugin: activation happens
+	 * on a request where no module has been instantiated yet.
+	 *
+	 * @return string[]
+	 */
+	public static function activation_aware_modules(): array {
+		$file = MY_PLUGIN_DIR . 'config/modules.php';
+
+		if ( ! is_readable( $file ) ) {
+			return array();
 		}
 
-		update_option( self::VERSION_OPTION, MY_PLUGIN_VERSION );
-		update_option( self::FLUSH_FLAG, '1' );
+		$classes = require $file;
+
+		if ( ! is_array( $classes ) ) {
+			return array();
+		}
+
+		return array_values(
+			array_filter(
+				$classes,
+				static function ( $class_name ): bool {
+					return is_string( $class_name )
+						&& class_exists( $class_name )
+						&& is_a( $class_name, ActivationAware::class, true );
+				}
+			)
+		);
 	}
 
 	/**

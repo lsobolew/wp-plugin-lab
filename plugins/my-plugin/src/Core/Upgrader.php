@@ -55,7 +55,12 @@ final class Upgrader {
 		}
 
 		update_option( Activator::VERSION_OPTION, MY_PLUGIN_VERSION );
-		update_option( Activator::FLUSH_FLAG, '1' );
+
+		// An upgrade can change what a module registers, so give the modules the same chance they
+		// get at activation - and nothing at all if none of them asked for anything.
+		foreach ( Activator::activation_aware_modules() as $class_name ) {
+			$class_name::on_activate();
+		}
 
 		/**
 		 * Fires after the plugin has been upgraded.

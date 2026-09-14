@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace MyVendor\MyPlugin\Modules\Settings;
 
+use MyVendor\MyPlugin\Core\ActivationAware;
 use MyVendor\MyPlugin\Core\Module as ModuleContract;
 use MyVendor\MyPlugin\Core\Plugin;
 use MyVendor\MyPlugin\Core\Settings;
@@ -21,7 +22,23 @@ defined( 'ABSPATH' ) || exit;
  * Removing this module only takes away the UI - the values and defaults keep living in
  * MyVendor\MyPlugin\Core\Settings.
  */
-final class Module implements ModuleContract {
+final class Module implements ModuleContract, ActivationAware {
+
+	/**
+	 * Seeds the defaults, so the settings screen opens on a filled-in form rather than an empty
+	 * one. Only this module reads the option, so only this module creates it.
+	 */
+	public static function on_activate(): void {
+		if ( false === get_option( Settings::OPTION, false ) ) {
+			add_option( Settings::OPTION, Settings::defaults() );
+		}
+	}
+
+	/**
+	 * Settings are user data: deactivating is not deleting. uninstall.php removes them.
+	 */
+	public static function on_deactivate(): void {
+	}
 
 	/**
 	 * Admin page slug.
