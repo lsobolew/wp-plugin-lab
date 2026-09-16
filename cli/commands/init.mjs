@@ -46,6 +46,13 @@ const slugToNamespace = ( slug ) =>
 		.map( ( part ) => part.charAt( 0 ).toUpperCase() + part.slice( 1 ) )
 		.join( '' );
 
+/** The slug as JavaScript would write it: image-icons -> imageIcons. */
+const camel = ( slug ) => {
+	const pascal = slugToNamespace( slug );
+
+	return pascal.charAt( 0 ).toLowerCase() + pascal.slice( 1 );
+};
+
 const slugToTitle = ( slug ) =>
 	slug
 		.split( /[-_]/ )
@@ -104,6 +111,14 @@ function replacements( from, to ) {
 		[ from.optionPrefix, to.optionPrefix ],
 
 		[ from.hookPrefix, to.hookPrefix ],
+
+		// lowerCamelCase, which is what JavaScript names the plugin in: block attributes saved
+		// into post content (maskedIconSize), globals, prop names. Nothing else on this list
+		// matches it - the slug is kebab, the namespace is PascalCase, the constant prefix is
+		// upper - so without this entry a rename leaves the old name in every saved post, and a
+		// plugin called Image Icons goes on writing maskedIconUrl forever.
+		[ `${ camel( from.slug ) }Pro`, `${ camel( to.slug ) }Pro` ],
+		[ camel( from.slug ), camel( to.slug ) ],
 
 		[ `${ from.title } Pro`, `${ to.title } Pro` ],
 		[ from.title, to.title ],
