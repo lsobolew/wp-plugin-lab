@@ -24,7 +24,7 @@
 		"@wordpress/i18n": "^5.0.0",
 		"@wordpress/server-side-render": "^5.0.0",
 		"sass": "^1.80.0",
-		"typescript": "^5.6.0",
+		"typescript": "^7.0.2",
 		"vite": "^6.0.0"
 	}
 }
