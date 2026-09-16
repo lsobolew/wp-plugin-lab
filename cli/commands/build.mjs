@@ -135,8 +135,50 @@ async function verifyPackage( target, dir, version, onLog ) {
 	return code === 0;
 }
 
+/**
+ * Compiles the block assets for every enabled edition, without packaging anything.
+ *
+ * @param {Record<string, unknown>} flags Parsed flags.
+ */
+async function buildAssetsOnly( flags ) {
+	const s = starter();
+	const editions = listFlag( flags.edition ).length
+		? listFlag( flags.edition )
+		: [ 'free', 'pro' ];
+
+	const wanted = ( editions.includes( 'both' ) ? [ 'free', 'pro' ] : editions ).filter(
+		( edition ) => s.editions?.[ edition ]?.enabled && s.editions[ edition ].dir
+	);
+
+	for ( const edition of wanted ) {
+		const dir = s.editions[ edition ].dir;
+
+		if ( ! ( await buildAssets( dir ) ) ) {
+			log.fail( `${ dir }: asset build failed` );
+
+			return 1;
+		}
+	}
+
+	log.blank();
+	log.ok( `Built the block assets for: ${ wanted.join( ', ' ) }` );
+	log.blank();
+
+	return 0;
+}
+
 export async function run_build( argv ) {
-	const { flags } = parseArgs( argv, { booleans: [ 'skip-assets', 'verify' ] } );
+	const { flags } = parseArgs( argv, {
+		booleans: [ 'skip-assets', 'skip-package', 'verify' ],
+	} );
+
+	// --skip-package compiles the blocks and stops there. It needs no container, which is the
+	// point: CI has to build the blocks before the end-to-end tests can see them, and starting a
+	// WordPress only to throw away the zip it produces would be a minute per matrix job.
+	if ( flags[ 'skip-package' ] ) {
+		return buildAssetsOnly( flags );
+	}
+
 	await assertDocker();
 
 	const s = starter();

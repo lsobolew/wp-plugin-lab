@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { paths, ensureDir } from './paths.mjs';
-import { starter } from './config.mjs';
+import { starter, pluginDirs } from './config.mjs';
 import { ADMIN_USER, ADMIN_PASSWORD } from './compose-render.mjs';
 import { run } from './proc.mjs';
 import { applyEdition, ensureUp } from './runner.mjs';
@@ -36,6 +36,44 @@ async function ensureBrowser( onLog ) {
 /**
  * Runs Playwright against one WordPress instance in one edition.
  */
+/**
+ * Refuses to run when a plugin has block sources but no build.
+ *
+ * `build/` is generated and therefore not in version control, so a fresh clone - or a CI job that
+ * checks out and goes straight to the tests - has block sources and nothing built from them. The
+ * plugin then registers no blocks at all, and every test that inserts one fails on a missing
+ * block. That reads as dozens of unrelated failures rather than one missing step, and it is not
+ * obvious from any of them what actually happened.
+ *
+ * @param {(text: string) => void} emit Log sink.
+ * @return {boolean} Whether every plugin with blocks has been built.
+ */
+function missingBuildsReported( emit ) {
+	const missing = [];
+
+	for ( const { dir, abs } of pluginDirs() ) {
+		if ( ! fs.existsSync( path.join( abs, 'blocks' ) ) ) continue;
+
+		const build = path.join( abs, 'build' );
+
+		if ( ! fs.existsSync( build ) || ! fs.readdirSync( build ).length ) {
+			missing.push( dir );
+		}
+	}
+
+	if ( ! missing.length ) return true;
+
+	emit(
+		`\nNo built blocks in: ${ missing.join( ', ' ) }\n` +
+			`build/ is generated and not committed, so it has to be produced before the end-to-end\n` +
+			`tests can see the blocks. Without it the plugin registers none of them and every test\n` +
+			`that inserts one fails for a reason that has nothing to do with the test.\n\n` +
+			`  ./bin/wpx build --skip-package\n\n`
+	);
+
+	return false;
+}
+
 export async function runE2e( { matrix, target, edition, theme, filter, onLog, headed } ) {
 	const emit = ( text ) => onLog?.( text );
 	const s = starter();
@@ -47,6 +85,8 @@ export async function runE2e( { matrix, target, edition, theme, filter, onLog, h
 		`\n${ '='.repeat( 60 ) }\n${ label } (WP ${ target.wpVersion } / PHP ${ target.php }` +
 			`${ theme ? ` / ${ theme.slug }` : '' })\n${ '='.repeat( 60 ) }\n`
 	);
+
+	if ( ! missingBuildsReported( emit ) ) return { ok: false, file: null };
 
 	const ready = await ensureUp( matrix, [ target ], { onLog: emit } );
 	if ( ! ready ) return { ok: false, file: null };

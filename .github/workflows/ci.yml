@@ -61,6 +61,11 @@ jobs:
           node-version: 22
       - name: Install the e2e runner
         run: npm ci
+      # build/ is generated, so a fresh checkout has block sources and nothing built from them.
+      # Without this the plugin registers no blocks and every end-to-end test that inserts one
+      # fails - which looks like a broken test suite rather than a missing step.
+      - name: Build the blocks
+        run: ./bin/wpx build --edition=both --skip-package
       - name: Start WordPress ${{ matrix.wp }}
         run: ./bin/wpx up ${{ matrix.id }}
       - name: Unit and integration tests
