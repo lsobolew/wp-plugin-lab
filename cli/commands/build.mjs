@@ -77,6 +77,15 @@ async function packagePlugin( target, dir, version, onLog ) {
 		`if [ -d ${ stage }/vendor ] && [ ! -d ${ stage }/vendor/composer/../../vendor/bin ]; then ` +
 			`REAL_DEPS="$(find ${ stage }/vendor -maxdepth 1 -mindepth 1 -type d ! -name composer | wc -l)"; ` +
 			`[ "$REAL_DEPS" = "0" ] && rm -rf ${ stage }/vendor || true; fi`,
+		// Regenerate the translation template from the staged copy - which is the plugin exactly
+		// as users receive it, minified JavaScript and all. Generating it from the sources would
+		// list strings from files that do not ship and spell their locations wrongly; generating
+		// it by hand means it silently describes an older release, which is worse than having
+		// none at all because nobody can tell by looking.
+		`if [ -d ${ stage }/languages ]; then ` +
+			`wp --allow-root i18n make-pot ${ stage } ${ stage }/languages/${ dir }.pot ` +
+			`--slug=${ dir } --exclude=blocks,tests,node_modules,vendor --quiet 2>/dev/null || ` +
+			`echo "note: could not regenerate ${ dir }.pot"; fi`,
 		`rm -rf /wplab/build/${ dir }-${ version }.zip`,
 		`cd /wplab/build && zip -rq ${ dir }-${ version }.zip ${ dir } -x '*.DS_Store'`,
 		`echo "packaged ${ dir }-${ version }.zip"`,

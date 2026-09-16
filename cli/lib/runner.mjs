@@ -178,6 +178,25 @@ export async function runSuite( {
 	emit( `\n${ '='.repeat( 60 ) }\n${ label } (WP ${ target.wpVersion } / PHP ${ target.php })\n${ '='.repeat( 60 ) }\n` );
 
 	if ( suite === 'unit' || suite === 'integration' ) {
+		// A plugin can legitimately have nothing to test at this level - one whose logic is all
+		// WordPress-coupled has no pure unit tests to write, and inventing some to keep the runner
+		// happy would be worse than having none. PHPUnit treats a missing directory as an error,
+		// so the absence is reported as a skip here instead of a failure.
+		const suiteDir = path.join( paths.plugins, pkg.dir, 'tests', suite === 'unit' ? 'Unit' : 'Integration' );
+
+		if ( ! fs.existsSync( suiteDir ) ) {
+			emit( `no ${ suite } tests in ${ pkg.dir } - skipping\n` );
+			writeSyntheticResult( {
+				target: target.id,
+				edition: pkg?.key ?? edition,
+				suite,
+				passed: true,
+				output: '',
+			} );
+
+			return { ok: true, file: junitHost };
+		}
+
 		const ready = await ensureUp( matrix, [ target ], { onLog: emit } );
 		if ( ! ready ) return { ok: false, file: null };
 

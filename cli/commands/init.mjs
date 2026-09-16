@@ -279,6 +279,50 @@ export async function run( argv ) {
 		renames.push( `${ oldDir }/ -> ${ newDir }/` );
 	}
 
+	// Composer's generated autoloader has the old namespace baked into it, and nothing else will
+	// put that right.
+	//
+	// vendor/ is skipped by the rewrite above, correctly - it is not ours to edit. But three of the
+	// files in it are a map from namespace to directory, so after a rename they point at a
+	// namespace that no longer exists and every class fails to load. Measured: `composer install`
+	// does not repair them. It sees an installed vendor/, decides there is nothing to do, and
+	// skips autoload generation - even when the map file has been deleted outright. So restarting
+	// the containers does not fix it either, and the plugin greets you with "Class ... not found"
+	// with nothing obviously wrong.
+	//
+	// Rewriting generated files is normally the wrong move, and it is the right one here: it works
+	// with the containers down, needs no network, and the next real `composer dump-autoload`
+	// overwrites these with the same content anyway.
+	if ( ! dryRun ) {
+		const autoloadFiles = [ 'autoload_psr4.php', 'autoload_static.php', 'autoload_classmap.php' ];
+
+		for ( const dir of [ to.slug, `${ to.slug }-pro` ] ) {
+			for ( const name of autoloadFiles ) {
+				const file = path.join( paths.plugins, dir, 'vendor', 'composer', name );
+
+				if ( ! fs.existsSync( file ) ) continue;
+
+				// PHP source escapes the separator, so the file holds Vendor\\Plugin, not
+				// Vendor\Plugin. Both spellings are replaced: the escaped one is what these files
+				// actually contain, and the plain one guards against a future composer writing it
+				// differently.
+				const escape = ( value ) => value.split( '\\' ).join( '\\\\' );
+
+				const before = fs.readFileSync( file, 'utf8' );
+				const after = before
+					.split( escape( from.namespace ) )
+					.join( escape( to.namespace ) )
+					.split( from.namespace )
+					.join( to.namespace );
+
+				if ( after === before ) continue;
+
+				fs.writeFileSync( file, after );
+				changed++;
+			}
+		}
+	}
+
 	// The plugin headers carry example.com until somebody replaces it, and Plugin Check rejects
 	// that domain outright. The starter.json values are the obvious source.
 	if ( ! dryRun ) {
