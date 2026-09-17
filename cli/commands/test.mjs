@@ -20,7 +20,7 @@ const DEFAULT_SUITES = ["unit", "integration", "e2e"];
 
 export async function run(argv) {
 	const { positional, flags } = parseArgs(argv, {
-		booleans: ["coverage", "headed", "bail"],
+		booleans: ["coverage", "headed", "bail", "no-sweep"],
 	});
 	await assertDocker();
 
@@ -67,12 +67,19 @@ export async function run(argv) {
 
 		for (const target of targets) {
 			// e2e is the only suite where the theme matters: it is the only one that renders pages.
+			// --no-sweep pins every target to the default theme; CI uses it on pull requests, where
+			// one theme run is the difference between quick feedback and a quarter of an hour.
+			const themeOverride = listFlag(flags.themes || flags.theme);
 			const themes =
 				suite === "e2e"
 					? themesForTarget(
 							matrix,
 							target.id,
-							listFlag(flags.themes || flags.theme),
+							themeOverride.length
+								? themeOverride
+								: flags["no-sweep"]
+									? [matrix.themes.default]
+									: [],
 						)
 					: [null];
 

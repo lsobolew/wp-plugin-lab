@@ -1,20 +1,24 @@
-import { parseArgs } from '../lib/args.mjs';
-import { resolveMatrix } from '../lib/matrix.mjs';
+import { parseArgs, listFlag } from '../lib/args.mjs';
+import { resolveMatrix, selectTargets } from '../lib/matrix.mjs';
 import { availableEditions, allPackages } from '../lib/runner.mjs';
 import { log, c } from '../lib/log.mjs';
 
 /**
  * Prints the resolved matrix. `--json` feeds GitHub Actions, which expands it with fromJSON()
  * into one job per WordPress version - so CI coverage follows wp-matrix.json automatically.
+ *
+ * `--targets=` narrows the list, which is how CI runs one WordPress version on a pull request and
+ * the whole matrix on the weekly sweep without keeping a second copy of the versions in YAML.
  */
 export async function run( argv ) {
 	const { flags } = parseArgs( argv, { booleans: [ 'json' ] } );
 	const matrix = await resolveMatrix();
+	const targets = selectTargets( matrix, listFlag( flags.targets ) );
 
 	if ( flags.json ) {
 		process.stdout.write(
 			JSON.stringify( {
-				include: matrix.targets.map( ( t ) => ( {
+				include: targets.map( ( t ) => ( {
 					id: t.id,
 					wp: t.wpVersion,
 					php: t.php,
@@ -31,7 +35,7 @@ export async function run( argv ) {
 	log.info( c.bold( 'Resolved matrix' ) );
 	log.blank();
 
-	for ( const t of matrix.targets ) {
+	for ( const t of targets ) {
 		log.info(
 			`  ${ t.id.padEnd( 9 ) } ${ String( t.wpSpec ).padEnd( 10 ) } -> WP ${ String(
 				t.wpVersion

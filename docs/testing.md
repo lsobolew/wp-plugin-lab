@@ -69,6 +69,34 @@ the plugin directory, for two reasons. They exercise a whole running site rather
 and `@wordpress/scripts` installs a second copy of Playwright inside the plugin's `node_modules`
 which the two instances cannot reconcile.
 
+## In CI
+
+GitHub Actions runs two lanes, because the full matrix is roughly four times the cost of the one
+configuration that catches almost everything.
+
+| Lane | When | What runs |
+|---|---|---|
+| Quick | Every push and pull request | Linters, PHPStan, Plugin Check, the packaged zip, and unit + integration + e2e on the newest WordPress, default theme only |
+| Full | Monday mornings, `workflow_dispatch`, or a pull request labelled `ci:full` | The same, but every target in `wp-matrix.json` and every theme in the sweep |
+
+The quick lane is `./bin/wpx matrix --json --targets=latest` for the job list and `--no-sweep` for
+the end-to-end step, which pins every target to the default theme. Both flags work locally too:
+
+```bash
+./bin/wpx test e2e --targets=latest --no-sweep   # one theme instead of the sweep
+```
+
+Label a pull request `ci:full` when it touches the things the matrix exists for - rewrite rules,
+the block editor, REST, multisite, or anything version-dependent in PHP. That is the same rule as
+the local one in `CLAUDE.md`, moved to where it costs money.
+
+Widen the quick lane by editing `QUICK_TARGETS` in `.github/workflows/ci.yml`; the ids come from
+`wp-matrix.json`, so `latest,min` is a one-line change if a project wants the oldest supported
+WordPress on every pull request.
+
+Every job carries a `timeout-minutes`. A hung container left to the six-hour default costs more
+billed minutes than a month of ordinary runs, and a hang is never a slow run worth waiting for.
+
 ## Debugging
 
 ```bash

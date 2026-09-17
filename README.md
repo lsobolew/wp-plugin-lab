@@ -27,7 +27,7 @@ the containers; only Node and Docker have to exist on the host.
 | **Plugin boilerplate** | Modular core with a settings screen, custom post type, REST API and WP-CLI commands. Each module can be removed with one command. |
 | **Free + Pro** | A paid add-on plugin that extends the free one through public hooks, with licensing and self-hosted updates. Both editions are a dimension of the test matrix. |
 | **Agent skills** | Two skills describing this repository (the CLI, and how to start a new plugin from it), plus the official [WordPress agent skills](https://github.com/WordPress/agent-skills) kept fresh by `wpx skills update` and a weekly CI job. An agent handed this repository can take it from there. |
-| **CI/CD** | GitHub Actions that expand `wp-matrix.json` into one job per WordPress version, build verified zips, and deploy to WordPress.org on demand. |
+| **CI/CD** | GitHub Actions that expand `wp-matrix.json` into one job per WordPress version, build verified zips, and deploy to WordPress.org on demand. Pull requests get the newest WordPress only; the whole matrix runs weekly, on demand, or on a `ci:full` label - see [testing](docs/testing.md#in-ci). |
 | **Stays current** | `wpx upgrade` pulls newer lab tooling into a repository you created months ago, as a reviewable diff. |
 
 ## Everyday commands
