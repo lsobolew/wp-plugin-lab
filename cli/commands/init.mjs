@@ -46,6 +46,13 @@ const slugToNamespace = ( slug ) =>
 		.map( ( part ) => part.charAt( 0 ).toUpperCase() + part.slice( 1 ) )
 		.join( '' );
 
+/** A title as a UI label is usually written: "Image Icons" -> "Image icons". */
+const sentence = ( title ) =>
+	title
+		.split( ' ' )
+		.map( ( word, index ) => ( index ? word.toLowerCase() : word ) )
+		.join( ' ' );
+
 /** The slug as JavaScript would write it: image-icons -> imageIcons. */
 const camel = ( slug ) => {
 	const pascal = slugToNamespace( slug );
@@ -122,6 +129,11 @@ function replacements( from, to ) {
 
 		[ `${ from.title } Pro`, `${ to.title } Pro` ],
 		[ from.title, to.title ],
+
+		// The same title in sentence case, which is how a UI label is usually written: a toolbar
+		// button reads "Masked icon", not "Masked Icon", and the entry above does not match it.
+		// Missing this leaves the old name in the one place users actually read it.
+		[ sentence( from.title ), sentence( to.title ) ],
 	];
 
 	return pairs
