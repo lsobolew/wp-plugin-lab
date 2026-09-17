@@ -73,9 +73,15 @@ async function packagePlugin( target, dir, version, onLog ) {
 		// and its own autoloader already covers its classes. Shipping vendor/ anyway leaves a
 		// directory with nothing but Composer's autoloader in it - which WordPress.org flags,
 		// because a vendor/ directory without a composer.json looks like a packaging mistake.
-		`if [ -d ${ stage }/vendor ] && [ -z "$(ls -A ${ stage }/vendor 2>/dev/null)" ]; then rm -rf ${ stage }/vendor; fi`,
-		`if [ -d ${ stage }/vendor ] && [ ! -d ${ stage }/vendor/composer/../../vendor/bin ]; then ` +
-			`REAL_DEPS="$(find ${ stage }/vendor -maxdepth 1 -mindepth 1 -type d ! -name composer | wc -l)"; ` +
+		// What counts is whether any third-party package was installed, and that is what the
+		// count below asks. An earlier version also required vendor/bin to be absent, which is
+		// not a proxy for anything: `composer install` creates that directory whether or not it
+		// put anything in it, so on a machine where it did - a CI runner, as it turned out - the
+		// whole step was skipped and the empty vendor/ shipped anyway. Found in a published zip,
+		// not in a test, which is why the packaging tests now assert on the contents.
+		`if [ -d ${ stage }/vendor ]; then ` +
+			`REAL_DEPS="$(find ${ stage }/vendor -maxdepth 1 -mindepth 1 -type d ` +
+			`! -name composer ! -name bin | wc -l)"; ` +
 			`[ "$REAL_DEPS" = "0" ] && rm -rf ${ stage }/vendor || true; fi`,
 		// Regenerate the translation template from the staged copy - which is the plugin exactly
 		// as users receive it, minified JavaScript and all. Generating it from the sources would
@@ -118,6 +124,19 @@ async function verifyPackage( target, dir, version, onLog ) {
 		`rm -rf /tmp/${ slug } ${ dest }`,
 		`mkdir -p /tmp/${ slug }`,
 		`unzip -q ${ zip } -d /tmp/${ slug }`,
+		// What is in the package, not only whether it runs. A zip can activate perfectly well and
+		// still carry things that should never have been in it - a vendor/ holding nothing but
+		// Composer's own autoloader, which WordPress.org reads as a packaging mistake because
+		// there is no composer.json beside it, or the files a Mac leaves in a directory. Both
+		// have shipped from here before, and neither shows up in a test that only asks whether
+		// the plugin starts.
+		`if [ -d /tmp/${ slug }/${ dir }/vendor ]; then ` +
+			`DEPS="$(find /tmp/${ slug }/${ dir }/vendor -maxdepth 1 -mindepth 1 -type d ` +
+			`! -name composer ! -name bin | wc -l)"; ` +
+			`if [ "$DEPS" = "0" ]; then ` +
+			`echo "the package ships a vendor/ with no dependencies in it" >&2; exit 1; fi; fi`,
+		`if find /tmp/${ slug }/${ dir } -name '.DS_Store' -o -name '._*' | grep -q .; then ` +
+			`echo "the package ships macOS metadata files" >&2; exit 1; fi`,
 		`mv /tmp/${ slug }/${ dir } ${ dest }`,
 		`find ${ dest } -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null`,
 		`wp --allow-root plugin activate ${ slug }`,
