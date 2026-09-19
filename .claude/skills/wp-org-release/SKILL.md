@@ -83,6 +83,8 @@ Headings inside sections use `= Heading =`.
    are both restricted in names and slugs**, as are other projects' brands.
 4. `Tested up to` naming a WordPress version that does not exist yet.
 5. Tags used for competitors' names.
+6. A plugin name built only from generic words - the one that actually costs most first
+   submissions a round. See [The name](#the-name).
 
 Details and the full field reference: `references/readme-txt.md`.
 
@@ -103,6 +105,35 @@ zip. In this repository they are kept in `.wordpress-org/` and uploaded by the d
 Banners up to 4 MB, icons 1 MB, screenshots 10 MB. Localised variants append a locale:
 `banner-772x250-es_ES.png`.
 
+## The name
+
+**The slug is permanent.** It comes from the plugin name at submission time and cannot be changed
+after approval - only the display name can. Getting it wrong costs a review round at best, and the
+directory review is the place where it is caught.
+
+A name built only from words describing the function is pended as generic. This is what the team
+wrote back about `image-icons`:
+
+> a generic descriptive name [that] does not begin with a distinctive brand or identifier
+
+The fix is one distinctive word at the front - a brand, a coined term, or the author's handle -
+carried by both the display name and the slug: `Sobol Image Icons` / `sobol-image-icons`. Adding
+another descriptive adjective is not a fix; "Advanced Image Icons" is as generic as the original.
+`sobol-` is the prefix this user's plugins use.
+
+Someone else's product name goes at the **end**, after "for": `sobol-sync-for-woocommerce`. A
+trademark at the front implies an affiliation that does not exist, and a blend word built out of
+one ("PricesPress") is worse. The same applies outside the name: usernames, URLs, banners and
+icons are all checked for terms that could mislead.
+
+Changing the name after a submission has been pended means replying in the same email thread and
+**asking for the new slug explicitly** - renaming the files is not enough, because the reserved
+permalink lives on the directory's side. Uploading the corrected zip before the reservation is
+confirmed is fine; a text-domain warning at that point is expected.
+
+`wpx init` warns when a slug is built entirely from generic words, which puts the decision on the
+day the plugin is created rather than the day it is submitted.
+
 ## Submitting
 
 1. Register on WordPress.org with an address you actually read, and allow mail from
@@ -110,9 +141,6 @@ Banners up to 4 MB, icons 1 MB, screenshots 10 MB. Localised variants append a l
 2. Upload the zip at <https://wordpress.org/plugins/developers/add/>.
 3. Wait. Review takes up to 14 business days, and the queue is people reading code.
 4. On approval you get an SVN repository.
-
-**The slug is permanent.** It comes from the plugin name at submission time and cannot be changed
-afterwards - only the display name can. Decide before submitting, not after.
 
 ## Publishing updates
 

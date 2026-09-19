@@ -43,10 +43,26 @@ questions:
 
 | Value | Rule |
 |---|---|
-| slug | lowercase with dashes, no `-pro` suffix (reserved for the paid edition) |
-| name | human readable, title case |
+| slug | lowercase with dashes, **starting with a distinctive identifier**, no `-pro` suffix |
+| name | human readable, title case, same distinctive word first |
 | namespace | `Vendor\PluginName` - ask for the vendor if there is no obvious one |
-| Pro edition | keep it only if the user mentioned a paid or premium tier |
+| Pro edition | keep it only if the user mentioned a paid or premium tier (`-pro` is its suffix) |
+
+### The name has to say whose plugin it is
+
+A name assembled only from words describing the function - `image-icons`, `simple-gallery`,
+`contact-forms` - gets a submission pended by WordPress.org as generic, and **the slug is permanent
+once a plugin is approved**: the display name can be changed later, the permalink never can. So
+this is decided here, on day one, not at submission.
+
+Put a distinctive word first: a brand, a coined term, or the author's own handle. `sobol-` is the
+prefix used for this user's plugins, so `sobol-image-icons`, `sobol-gallery`, and so on. Another
+generic adjective does not fix it - "Advanced Image Icons" is as generic as "Image Icons".
+
+If the plugin integrates with someone else's product, that product's name goes at the *end*, after
+"for": `sobol-sync-for-woocommerce`, never `woocommerce-sync`, which implies an affiliation that
+does not exist. `wpx init` warns when a slug is built entirely from generic words, but the warning
+is a heuristic - the decision is yours to make and to state.
 
 Then run the rename. It rewrites headers, namespaces, constants, hook prefixes, text domain, option
 names, block names, directory and file names, in both editions and in the CI files:
