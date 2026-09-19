@@ -56,6 +56,14 @@ async function buildAssets( dir ) {
  * `composer install --no-dev` produce the exact autoloader that ships to users.
  */
 async function packagePlugin( target, dir, version, onLog ) {
+	const { code } = await compose(
+		[ 'exec', '-T', target.service, 'bash', '-lc', packageScript( dir, version ) ],
+		{ onData: onLog }
+	);
+	return code === 0;
+}
+
+export function packageScript( dir, version ) {
 	const stage = `/wplab/build/${ dir }`;
 	const source = `/var/www/html/wp-content/plugins/${ dir }`;
 
@@ -67,7 +75,7 @@ async function packagePlugin( target, dir, version, onLog ) {
 		`if [ -f ${ stage }/composer.json ] || [ -f ${ source }/composer.json ]; then ` +
 			`cp ${ source }/composer.json ${ stage }/composer.json 2>/dev/null || true; ` +
 			`[ -f ${ source }/composer.lock ] && cp ${ source }/composer.lock ${ stage }/ || true; ` +
-			`composer install --working-dir=${ stage } --no-dev --optimize-autoloader --no-interaction --quiet || true; ` +
+			`composer install --working-dir=${ stage } --no-dev --optimize-autoloader --no-interaction --quiet || exit $?; ` +
 			`rm -f ${ stage }/composer.json ${ stage }/composer.lock; fi`,
 		// A plugin whose only Composer requirement is PHP itself has no third-party code to ship,
 		// and its own autoloader already covers its classes. Shipping vendor/ anyway leaves a
@@ -97,12 +105,7 @@ async function packagePlugin( target, dir, version, onLog ) {
 		`echo "packaged ${ dir }-${ version }.zip"`,
 	].join( ' && ' );
 
-	const { code } = await compose(
-		[ 'exec', '-T', target.service, 'bash', '-lc', script ],
-		{ onData: onLog }
-	);
-
-	return code === 0;
+	return script;
 }
 
 /**

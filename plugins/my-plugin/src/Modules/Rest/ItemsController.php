@@ -102,7 +102,23 @@ final class ItemsController extends WP_REST_Controller {
 	 * @return bool|WP_Error
 	 */
 	public function get_item_permissions_check( $request ) {
-		return $this->get_items_permissions_check( $request );
+		$allowed = $this->get_items_permissions_check( $request );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		$post = get_post( (int) $request->get_param( 'id' ) );
+		if ( ! $post instanceof WP_Post || ContentType::POST_TYPE !== $post->post_type ) {
+			return new WP_Error( 'my_plugin_rest_not_found', __( 'Item not found.', 'my-plugin' ), array( 'status' => 404 ) );
+		}
+
+		if ( 'publish' === $post->post_status ||
+			( 'private' === $post->post_status && current_user_can( 'read_post', $post->ID ) ) ||
+			current_user_can( 'edit_post', $post->ID ) ) {
+			return true;
+		}
+
+		return new WP_Error( 'my_plugin_rest_forbidden', __( 'You are not allowed to read items.', 'my-plugin' ), array( 'status' => 403 ) );
 	}
 
 	/**

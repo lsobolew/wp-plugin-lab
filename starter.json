@@ -53,10 +53,12 @@
 		"repo": "https://github.com/WordPress/agent-skills.git",
 		"ref": "trunk",
 		"targets": [
+			"codex",
 			"claude"
 		],
 		"install": [
 			"wordpress-router",
+			"wp-project-triage",
 			"wp-plugin-development",
 			"wp-plugin-directory-guidelines",
 			"wp-block-development",

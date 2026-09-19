@@ -1,4 +1,5 @@
 {
+	"$schema": "./docs/matrix.schema.json",
 	"//": "Wersje WordPressa, na ktorych ma dzialac plugin. 'latest' / 'latest-1' / 'latest-2' sa rozwiazywane z api.wordpress.org, 'nightly' to build z trunka.",
 	"targets": [
 		{
@@ -21,7 +22,7 @@
 		},
 		{
 			"id": "min",
-			"wp": "6.8",
+			"wp": "6.6",
 			"php": "7.4",
 			"port": 8094
 		},
@@ -50,7 +51,7 @@
 	},
 	"themes": {
 		"//": "Themes the block is tested against. 'sweep' says where the full set runs; every other target uses 'default'. A block behaves differently on a block theme than on a classic one, which is why the set mixes both.",
-		"default": "twentytwentyfive",
+		"default": "twentytwentyfour",
 		"sweep": {
 			"targets": [
 				"latest"

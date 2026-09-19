@@ -32,6 +32,12 @@ function watchConsole( page: Page ): string[] {
 		if ( message.type() !== 'error' ) return;
 
 		const text = message.text();
+		// WP 6.6's wp.element exports ReactDOM.createRoot directly. initializeEditor triggers
+		// this warning even in an empty editor (wp-includes/js/dist/edit-post.js).
+		if (
+			/^6\.6(?:\.|$)/.test( process.env.WPLAB_WP_VERSION || '' ) &&
+			text === 'Warning: You are importing createRoot from "react-dom" which is not supported. You should instead import it from "react-dom/client".'
+		) return;
 
 		if ( IGNORED_CONSOLE.some( ( pattern ) => pattern.test( text ) ) ) return;
 

@@ -9,6 +9,7 @@
 		"node": ">=20"
 	},
 	"scripts": {
+		"test:cli": "node --test cli/tests/*.test.mjs",
 		"wpx": "./bin/wpx",
 		"panel": "./bin/wpx panel",
 		"test:e2e": "./bin/wpx test e2e"

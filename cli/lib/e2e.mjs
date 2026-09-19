@@ -93,7 +93,7 @@ export async function runE2e( { matrix, target, edition, theme, filter, onLog, h
 
 	if ( ! ( await ensureBrowser( emit ) ) ) return { ok: false, file: null };
 
-	await applyEdition( target, edition, { onLog: emit } );
+	if ( ! await applyEdition( target, edition, { onLog: emit } ) ) return { ok: false, file: null };
 
 	// The theme is switched before the run rather than inside a test: activating it mid-suite
 	// would leave the previous test's page rendered by a different theme than it asserted on.
@@ -133,6 +133,7 @@ export async function runE2e( { matrix, target, edition, theme, filter, onLog, h
 			WP_USERNAME: ADMIN_USER,
 			WP_PASSWORD: ADMIN_PASSWORD,
 			WPLAB_TARGET: target.id,
+			WPLAB_WP_VERSION: target.wpVersion,
 			WPLAB_EDITION: edition,
 			WPLAB_THEME: theme?.slug || '',
 			WPLAB_THEME_ALIAS: themeAlias || '',

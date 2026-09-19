@@ -149,4 +149,27 @@ final class RestItemsTest extends WP_UnitTestCase {
 
 		$this->assertSame( 404, $response->get_status() );
 	}
+
+	/**
+	 * Subscribers cannot inspect nonpublic items; editors can inspect those they may edit.
+	 */
+	public function test_single_item_visibility(): void {
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+		foreach ( array( 'subscriber', 'editor' ) as $role ) {
+			wp_set_current_user( self::factory()->user->create( array( 'role' => $role ) ) );
+			foreach ( array( 'publish', 'draft', 'pending', 'future', 'private', 'trash' ) as $status ) {
+				$id       = self::factory()->post->create(
+					array(
+						'post_type'   => ContentType::POST_TYPE,
+						'post_status' => $status,
+						'post_author' => $author,
+						'post_date'   => 'future' === $status ? gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) : '2020-01-01 00:00:00',
+					)
+				);
+				$response = $this->server->dispatch( new WP_REST_Request( 'GET', '/my-plugin/v1/items/' . $id ) );
+				$expected = 'publish' === $status || 'editor' === $role ? 200 : 403;
+				$this->assertSame( $expected, $response->get_status(), $role . ': ' . $status );
+			}
+		}
+	}
 }

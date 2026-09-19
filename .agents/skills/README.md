@@ -1,7 +1,8 @@
 # Agent skills
 
-Instructions for AI coding agents working in this repository. Claude Code loads them
-automatically; other agents can be targeted through `starter.json` → `skills.targets`.
+Instructions for AI coding agents working in this repository. Codex loads the canonical copy from
+this directory. `./bin/wpx skills install` generates compatibility copies for the other targets in
+`starter.json` → `skills.targets`.
 
 ## Maintained here
 
@@ -11,7 +12,7 @@ automatically; other agents can be targeted through `starter.json` → `skills.t
 | `create-wp-plugin` | Turning this starter into a new plugin, end to end |
 | `wp-org-release` | readme.txt, directory assets, the submission zip, and SVN updates |
 
-Edit these freely - they are yours. `./bin/wpx upgrade` does not touch `.claude/`, so local changes
+Edit these freely - they are yours. `./bin/wpx upgrade` does not touch `.agents/`, so local changes
 survive a lab upgrade.
 
 Project skills only load once an agent is already inside the repository, which is too late for
@@ -21,7 +22,8 @@ Project skills only load once an agent is already inside the repository, which i
 ./bin/wpx skills global
 ```
 
-That copies them into `~/.claude/skills/`. Re-run it after `wpx upgrade` to pick up newer wording.
+That copies them into both `~/.agents/skills/` and `~/.claude/skills/`. Re-run it after `wpx
+upgrade` to pick up newer wording.
 
 ## Installed from WordPress
 
@@ -35,8 +37,9 @@ installed and updated by:
 ./bin/wpx skills status
 ```
 
-`.claude/wplab-skills.lock.json` records the exact upstream commit. Do not edit those directories
-by hand - the next update overwrites them. To change which ones are installed, edit
+`.agents/wplab-skills.lock.json` records the exact upstream commit. Do not edit upstream-managed
+skill directories or the generated `.claude/skills/` copy by hand; the next update overwrites
+them. To change which ones are installed, edit
 `starter.json` → `skills.install` and run the installer again.
 
-The installer replaces only the skills it manages, so the two maintained here are safe.
+The installer replaces only the upstream skills it manages, so the three maintained here are safe.

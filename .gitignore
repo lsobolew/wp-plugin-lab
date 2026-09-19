@@ -16,8 +16,8 @@ plugins/*/languages/*.mo
 .phpunit.result.cache
 .phpcs.cache
 
-# The agent skills in .claude/skills are committed on purpose: everyone (and every agent)
-# working on this repo should get the same WordPress instructions, and updates show up in diffs.
+# The canonical agent skills in .agents/skills and the generated Claude compatibility copy in
+# .claude/skills are committed on purpose, so updates remain reviewable for every agent.
 
 # System
 .DS_Store

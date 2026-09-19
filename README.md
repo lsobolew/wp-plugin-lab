@@ -51,7 +51,7 @@ Run `./bin/wpx` with no arguments for the full list.
 
 ## Working with an AI agent
 
-This repository carries its own instructions in `.claude/skills/`: `wp-plugin-lab` describes the
+This repository carries its own instructions in `.agents/skills/`: `wp-plugin-lab` describes the
 CLI and the workflow, `create-wp-plugin` describes starting a new plugin from the starter, and
 `wp-org-release` covers readme.txt and publishing to the WordPress.org directory. An agent opened
 inside a clone picks them up automatically.
@@ -61,7 +61,7 @@ repository has been cloned - which is too late to help with *"clone the starter 
 plugin that does X"*, the prompt they exist for. For that, they have to be installed at user level:
 
 ```bash
-./bin/wpx skills global    # copies them into ~/.claude/skills/
+./bin/wpx skills global    # copies them into the Codex and Claude user skill directories
 ```
 
 This writes outside the repository, into your home directory, so it is opt-in and never runs on its
