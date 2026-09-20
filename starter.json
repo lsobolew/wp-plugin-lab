@@ -17,14 +17,16 @@
 		"free": {
 			"dir": "my-plugin",
 			"enabled": true,
-			"wporg": true
+			"wporg": true,
+			"distribution": "public"
 		},
 		"pro": {
 			"dir": "my-plugin-pro",
 			"enabled": true,
-			"wporg": false
+			"wporg": false,
+			"distribution": "local"
 		},
-		"//": "wporg says whether an edition is destined for the WordPress.org directory. Plugin Check only runs on those: a privately distributed add-on legitimately carries an Update URI header and no readme.txt, both of which the directory's own tool reports as errors."
+		"//": "distribution controls public packaging (default: public); wporg independently controls Plugin Check and WordPress.org deployment."
 	},
 	"features": {
 		"settings": {

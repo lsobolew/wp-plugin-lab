@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { packageScript } from '../../cli/commands/build.mjs';
+import { buildPackage, packageScript, selectBuildEditions } from '../../cli/commands/build.mjs';
+import { selectVersionEditions } from '../../cli/commands/version.mjs';
 import { discoverBlocks, discoverScripts } from '../../cli/vite/wordpress-blocks.mjs';
 import { missingBuildsReported } from '../../cli/lib/e2e.mjs';
 import { installTargets } from '../../cli/commands/skills.mjs';
@@ -12,7 +15,7 @@ import { pluginCheckPassed } from '../../cli/lib/plugin-check.mjs';
 import { createJobQueue } from '../../dashboard/job-queue.mjs';
 import { createTestPlan } from '../../cli/lib/test-plan.mjs';
 import { selectTargets } from '../../cli/lib/matrix.mjs';
-import { validateSchema, validateCompatibility } from '../../cli/lib/config-validation.mjs';
+import { validateSchema, validateCompatibility, validateEditionDistributions } from '../../cli/lib/config-validation.mjs';
 import { adaptSkillText, validateSkillResources, resolveSkillDependencies } from '../../cli/lib/skill-paths.mjs';
 
 const read = ( file ) => JSON.parse( fs.readFileSync( new URL( '../../' + file, import.meta.url ) ) );
@@ -48,6 +51,29 @@ cd() { :; }; wp() { :; }; find() { :; };
 
 test( 'packaging excludes editor sources from the generated translation catalogue', () => {
 	assert.match( packageScript( 'my-plugin', '0.1.0' ), /--exclude=blocks,scripts,tests,node_modules,vendor/ );
+} );
+
+test( 'distribution defaults to public and only explicit local builds package Pro', () => {
+	const legacy = structuredClone( starter );
+	assert.deepEqual( selectBuildEditions( legacy ), { wanted: [ 'free', 'pro' ], omitted: [], explicit: false } );
+	const configured = structuredClone( starter );
+	configured.editions.pro.distribution = 'local';
+	assert.deepEqual( selectBuildEditions( configured ), { wanted: [ 'free' ], omitted: [], explicit: false } );
+	assert.deepEqual( selectBuildEditions( configured, [], true ), { wanted: [ 'free' ], omitted: [ 'pro' ], explicit: false } );
+	assert.deepEqual( selectBuildEditions( configured, [ 'pro' ] ).wanted, [ 'pro' ] );
+	assert.deepEqual( selectBuildEditions( configured, [ 'both' ], true ), { wanted: [ 'free' ], omitted: [ 'pro' ], explicit: true } );
+} );
+
+test( 'the shared packager refuses local editions in CI', async () => {
+	await assert.rejects( buildPackage( 'fixture-pro', async () => true, { distribution: 'local', ci: true } ), /refusing to package/ );
+} );
+
+test( 'versioning selects editions independently while preserving the shared default', () => {
+	assert.deepEqual( selectVersionEditions( starter ).map( ( item ) => item.edition ), [ 'free', 'pro' ] );
+	assert.deepEqual( selectVersionEditions( starter, 'free' ), [ { edition: 'free', dir: 'fixture' } ] );
+	assert.deepEqual( selectVersionEditions( starter, 'pro' ), [ { edition: 'pro', dir: 'fixture-pro' } ] );
+	assert.deepEqual( selectVersionEditions( starter, 'both' ).map( ( item ) => item.edition ), [ 'free', 'pro' ] );
+	assert.throws( () => selectVersionEditions( starter, 'enterprise' ), /free\|pro\|both/ );
 } );
 
 test( 'editor scripts are discovered independently from blocks', () => {
@@ -139,6 +165,10 @@ test( 'schemas and cross-file validation reject dangerous or inconsistent config
 	validateSchema( starter, read( 'docs/starter.schema.json' ) );
 	validateSchema( raw, read( 'docs/matrix.schema.json' ) );
 	validateCompatibility( starter, raw );
+	validateEditionDistributions( starter );
+	const contradictory = structuredClone( starter );
+	contradictory.editions.pro = { ...contradictory.editions.pro, distribution: 'local', wporg: true };
+	assert.throws( () => validateEditionDistributions( contradictory ), /cannot combine/ );
 	const badDir = structuredClone( starter );
 	badDir.editions.free.dir = '../outside';
 	assert.throws( () => validateSchema( badDir, read( 'docs/starter.schema.json' ) ), /must match/ );
@@ -160,6 +190,28 @@ test( 'CI tooling and type checks do not depend on product-owned npm scripts or 
 	assert.ok( workflow.includes( './bin/wpx test types --targets=${{ matrix.id }} --edition=both' ) );
 	assert.ok( ! workflow.includes( 'plugins/my-plugin' ) );
 	assert.ok( ! workflow.includes( 'npm run test:cli' ) );
+	assert.ok( workflow.includes( './bin/wpx build --edition=both --public-only --verify' ) );
+	assert.ok( workflow.includes( 'path: .wplab/public-artifacts/' ) );
+} );
+
+test( 'public artifact validation rejects stale and local ZIPs', () => {
+	const root = fs.mkdtempSync( path.join( os.tmpdir(), 'wplab-artifacts-' ) );
+	const script = fileURLToPath( new URL( '../../cli/scripts/validate-public-artifacts.mjs', import.meta.url ) );
+	try {
+		const zip = Buffer.from( 'free zip' );
+		fs.writeFileSync( path.join( root, 'fixture-1.0.0.zip' ), zip );
+		const sha256 = crypto.createHash( 'sha256' ).update( zip ).digest( 'hex' );
+		const manifest = { schemaVersion: 1, publicOnly: true, artifacts: [ { edition: 'free', distribution: 'public', file: 'fixture-1.0.0.zip', version: '1.0.0', size: zip.length, sha256 } ] };
+		const manifestFile = path.join( root, 'build-manifest.json' );
+		fs.writeFileSync( manifestFile, JSON.stringify( manifest ) );
+		assert.equal( spawnSync( process.execPath, [ script, manifestFile ] ).status, 0 );
+		fs.writeFileSync( path.join( root, 'fixture-pro-old.zip' ), 'stale' );
+		assert.notEqual( spawnSync( process.execPath, [ script, manifestFile ] ).status, 0 );
+		fs.rmSync( path.join( root, 'fixture-pro-old.zip' ) );
+		manifest.artifacts[ 0 ].distribution = 'local';
+		fs.writeFileSync( manifestFile, JSON.stringify( manifest ) );
+		assert.notEqual( spawnSync( process.execPath, [ script, manifestFile ] ).status, 0 );
+	} finally { fs.rmSync( root, { recursive: true, force: true } ); }
 } );
 
 test( 'the manual WordPress.org deploy converts Git tags to numeric SVN versions', () => {

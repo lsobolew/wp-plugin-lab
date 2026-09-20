@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { parseArgs, listFlag } from '../lib/args.mjs';
-import { paths, ensureDir } from '../lib/paths.mjs';
+import { paths, ensureDir, writeJson } from '../lib/paths.mjs';
 import { starter } from '../lib/config.mjs';
 import { resolveMatrix, selectTargets } from '../lib/matrix.mjs';
 import { assertDocker, compose, syncCompose } from '../lib/docker.mjs';
@@ -30,8 +31,11 @@ function pluginVersion( dir ) {
 }
 
 /** Shared asset/package pipeline. The caller selects the container, never the source contents. */
-export async function buildPackage( dir, execute, { skipAssets = false } = {} ) {
+export async function buildPackage( dir, execute, { skipAssets = false, distribution = 'public', ci = Boolean( process.env.CI ) } = {} ) {
 	if ( ! /^[a-z][a-z0-9-]*$/.test( dir ) ) throw new UserError( 'Invalid plugin directory.' );
+	if ( distribution === 'local' && ci ) {
+		throw new UserError( `${ dir}: refusing to package a local edition in CI. Use --public-only for publishable artifacts.` );
+	}
 	const version = pluginVersion( dir );
 	if ( ! skipAssets && ! await buildAssets( dir ) ) throw new UserError( `${ dir }: asset build failed` );
 	if ( ! await execute( packageScript( dir, version ) ) ) throw new UserError( `${ dir }: packaging failed` );
@@ -192,9 +196,26 @@ async function buildAssetsOnly( flags ) {
 	return 0;
 }
 
+/** Resolve packaging editions without coupling distribution policy to enabled/testable editions. */
+export function selectBuildEditions( s, requested = [], publicOnly = false ) {
+	const explicit = requested.length > 0;
+	const candidates = explicit
+		? ( requested.includes( 'both' ) ? [ 'free', 'pro' ] : requested )
+		: Object.keys( s.editions || {} ).filter( ( edition ) => publicOnly || ( s.editions[ edition ]?.distribution || 'public' ) === 'public' );
+	const enabled = candidates.filter( ( edition ) => s.editions?.[ edition ]?.enabled && s.editions[ edition ].dir );
+	const omitted = publicOnly
+		? enabled.filter( ( edition ) => ( s.editions[ edition ].distribution || 'public' ) === 'local' )
+		: [];
+	return {
+		wanted: enabled.filter( ( edition ) => ! omitted.includes( edition ) ),
+		omitted,
+		explicit,
+	};
+}
+
 export async function run_build( argv ) {
 	const { flags } = parseArgs( argv, {
-		booleans: [ 'skip-assets', 'skip-package', 'verify' ],
+		booleans: [ 'skip-assets', 'skip-package', 'verify', 'public-only' ],
 	} );
 
 	// --skip-package compiles the blocks and stops there. It needs no container, which is the
@@ -210,13 +231,8 @@ export async function run_build( argv ) {
 	const matrix = await resolveMatrix();
 	syncCompose( matrix );
 
-	const editions = listFlag( flags.edition ).length
-		? listFlag( flags.edition )
-		: [ 'free', 'pro' ];
-
-	const wanted = ( editions.includes( 'both' ) ? [ 'free', 'pro' ] : editions ).filter(
-		( edition ) => s.editions?.[ edition ]?.enabled && s.editions[ edition ].dir
-	);
+	const { wanted, omitted } = selectBuildEditions( s, listFlag( flags.edition ), Boolean( flags[ 'public-only' ] ) );
+	for ( const edition of omitted ) log.info( `Skipping local edition: ${ edition } (${ s.editions[ edition ].dir })` );
 
 	if ( ! wanted.length ) {
 		throw new UserError( 'No edition to build - check starter.json -> editions.' );
@@ -229,6 +245,9 @@ export async function run_build( argv ) {
 	if ( ! ready ) return 1;
 
 	ensureDir( path.join( paths.root, 'dist' ) );
+	const publicArtifacts = path.join( paths.work, 'public-artifacts' );
+	fs.rmSync( publicArtifacts, { recursive: true, force: true } );
+	ensureDir( publicArtifacts );
 	const built = [];
 
 	for ( const edition of wanted ) {
@@ -236,7 +255,7 @@ export async function run_build( argv ) {
 		const { version } = await buildPackage( dir, async ( script ) => {
 			const { code } = await compose( [ 'exec', '-T', target.service, 'bash', '-lc', script ] );
 			return code === 0;
-		}, { skipAssets: flags[ 'skip-assets' ] } );
+		}, { skipAssets: flags[ 'skip-assets' ], distribution: s.editions[ edition ].distribution || 'public' } );
 
 		if ( flags.verify && ! ( await verifyPackage( target, dir, version, ( t ) => process.stdout.write( t ) ) ) ) {
 			log.fail( `${ dir }: the built package failed verification` );
@@ -248,8 +267,18 @@ export async function run_build( argv ) {
 		const to = path.join( paths.root, 'dist', zipName );
 
 		fs.copyFileSync( from, to );
-		built.push( { zipName, to, size: fs.statSync( to ).size } );
+		const bytes = fs.readFileSync( to );
+		const item = { edition, distribution: s.editions[ edition ].distribution || 'public', zipName, to,
+			size: bytes.length, sha256: crypto.createHash( 'sha256' ).update( bytes ).digest( 'hex' ), version };
+		built.push( item );
+		if ( item.distribution === 'public' ) fs.copyFileSync( to, path.join( publicArtifacts, zipName ) );
 	}
+	writeJson( path.join( publicArtifacts, 'build-manifest.json' ), {
+		schemaVersion: 1,
+		publicOnly: Boolean( flags[ 'public-only' ] ),
+		artifacts: built.filter( ( item ) => item.distribution === 'public' ).map( ( { edition, distribution, zipName, size, sha256, version } ) =>
+			( { edition, distribution, file: zipName, version, size, sha256 } ) ),
+	} );
 
 	log.blank();
 

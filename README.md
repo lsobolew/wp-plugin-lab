@@ -45,7 +45,7 @@ the containers; only Node and Docker have to exist on the host.
 ./bin/wpx theme use tt1              # switch to the classic theme
 ./bin/wpx wp latest -- plugin list   # WP-CLI inside a container
 ./bin/wpx feature remove blocks      # drop a module you do not need
-./bin/wpx version 1.2.0              # one version number, everywhere it is written
+./bin/wpx version 1.2.0              # all editions; add --edition=free|pro to version one
 ./bin/wpx build --edition=both --verify
 ./bin/wpx upgrade                    # pull newer lab tooling from the starter
 ./bin/wpx down                       # stop everything

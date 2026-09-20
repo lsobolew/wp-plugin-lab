@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { paths, readJson } from './paths.mjs';
 import { UserError } from './log.mjs';
 import path from 'node:path';
-import { validateSchema, validateCompatibility } from './config-validation.mjs';
+import { validateSchema, validateCompatibility, validateEditionDistributions } from './config-validation.mjs';
 
 let starterCache = null;
 let matrixCache = null;
@@ -14,6 +14,7 @@ export function starter() {
 	}
 	const value = readJson( paths.starter );
 	validateSchema( value, readJson( path.join( paths.root, 'docs/starter.schema.json' ) ), 'starter.json' );
+	validateEditionDistributions( value );
 	const directories = Object.values( value.editions ).filter( ( edition ) => edition?.dir ).map( ( edition ) => edition.dir );
 	if ( new Set( directories ).size !== directories.length ) throw new UserError( 'starter.json: edition directories must be distinct.' );
 	for ( const [ name, edition ] of Object.entries( value.editions ) ) {

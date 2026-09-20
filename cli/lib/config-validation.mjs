@@ -60,6 +60,15 @@ export function validateCompatibility( starter, matrix ) {
 	}
 }
 
+/** Reject combinations that could accidentally publish a locally distributed edition. */
+export function validateEditionDistributions( starter ) {
+	for ( const [ name, edition ] of Object.entries( starter.editions || {} ) ) {
+		if ( edition?.wporg === true && edition.distribution === 'local' ) {
+			throw new UserError( `starter.json: edition ${ name } cannot combine wporg: true with distribution: local.` );
+		}
+	}
+}
+
 function compareVersions( left, right ) {
 	const a = left.split( '.' ).map( Number );
 	const b = right.split( '.' ).map( Number );
