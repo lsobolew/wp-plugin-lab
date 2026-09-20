@@ -27,11 +27,20 @@ jobs:
           ./bin/wpx up latest
           ./bin/wpx build --edition=free --verify
 
+      # Git tags use the conventional v1.2.0 form, but WordPress.org SVN tags may contain only
+      # numbers and periods. workflow_dispatch keeps github.ref on the selected branch, so pass
+      # the normalized input explicitly instead of relying on the deploy action to infer it.
+      - name: Resolve the SVN version
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "SVN_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+
       - name: Publish
         uses: 10up/action-wordpress-plugin-deploy@stable
         env:
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SLUG: my-plugin
+          VERSION: ${{ env.SVN_VERSION }}
           BUILD_DIR: .wplab/build/my-plugin
           ASSETS_DIR: .wordpress-org

@@ -162,6 +162,13 @@ test( 'CI tooling and type checks do not depend on product-owned npm scripts or 
 	assert.ok( ! workflow.includes( 'npm run test:cli' ) );
 } );
 
+test( 'the manual WordPress.org deploy converts Git tags to numeric SVN versions', () => {
+	const workflow = fs.readFileSync( new URL( '../../.github/workflows/deploy-wporg.yml', import.meta.url ), 'utf8' );
+	assert.match( workflow, /SVN_VERSION=\$\{RELEASE_TAG#v\}/ );
+	assert.match( workflow, /VERSION: \$\{\{ env\.SVN_VERSION \}\}/ );
+	assert.doesNotMatch( workflow, /VERSION: \$\{\{ inputs\.tag \}\}/ );
+} );
+
 test( 'installed skill resource paths are adapted idempotently and missing resources fail', () => {
 	const source = '`node skills/wp-project-triage/scripts/detect_wp_project.mjs`';
 	const adapted = adaptSkillText( source );
