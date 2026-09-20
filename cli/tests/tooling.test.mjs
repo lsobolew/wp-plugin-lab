@@ -6,6 +6,7 @@ import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { packageScript } from '../../cli/commands/build.mjs';
 import { discoverBlocks, discoverScripts } from '../../cli/vite/wordpress-blocks.mjs';
+import { missingBuildsReported } from '../../cli/lib/e2e.mjs';
 import { installTargets } from '../../cli/commands/skills.mjs';
 import { pluginCheckPassed } from '../../cli/lib/plugin-check.mjs';
 import { createJobQueue } from '../../dashboard/job-queue.mjs';
@@ -63,6 +64,35 @@ test( 'editor scripts are discovered independently from blocks', () => {
 		put( 'blocks/callout/index.js' );
 		assert.deepEqual( discoverScripts( root ).map( ( entry ) => entry.name ), [ 'sidebar' ] );
 		assert.deepEqual( discoverBlocks( root ).map( ( entry ) => entry.name ), [ 'callout' ] );
+	} finally { fs.rmSync( root, { recursive: true, force: true } ); }
+} );
+
+test( 'E2E preflight ignores helpers but still requires builds for actual editor bundles', () => {
+	const root = fs.mkdtempSync( path.join( os.tmpdir(), 'wplab-preflight-test-' ) );
+	const put = ( relative ) => {
+		const file = path.join( root, relative );
+		fs.mkdirSync( path.dirname( file ), { recursive: true } );
+		fs.writeFileSync( file, '' );
+	};
+	const check = ( name ) => {
+		const messages = [];
+		const ok = missingBuildsReported( ( text ) => messages.push( text ), [ { dir: name, abs: path.join( root, name ) } ] );
+		return { ok, messages };
+	};
+	try {
+		put( 'helpers/scripts/shared/helper.js' );
+		put( 'helpers/scripts/release.mjs' );
+		put( 'helpers/blocks/shared/helper.ts' );
+		assert.deepEqual( check( 'helpers' ), { ok: true, messages: [] } );
+		for ( const [ name, source ] of [ [ 'editor', 'scripts/sidebar/index.tsx' ], [ 'block', 'blocks/callout/block.json' ] ] ) {
+			put( `${ name }/${ source }` );
+			assert.equal( check( name ).ok, false );
+			assert.match( check( name ).messages.join( '' ), /Nothing built in:/ );
+			fs.mkdirSync( path.join( root, name, 'build' ) );
+			assert.equal( check( name ).ok, false );
+			put( `${ name }/build/bundle/index.js` );
+			assert.deepEqual( check( name ), { ok: true, messages: [] } );
+		}
 	} finally { fs.rmSync( root, { recursive: true, force: true } ); }
 } );
 
