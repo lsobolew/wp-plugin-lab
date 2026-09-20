@@ -98,7 +98,7 @@ export function packageScript( dir, version ) {
 		// none at all because nobody can tell by looking.
 		`if [ -d ${ stage }/languages ]; then ` +
 			`wp --allow-root i18n make-pot ${ stage } ${ stage }/languages/${ dir }.pot ` +
-			`--slug=${ dir } --exclude=blocks,tests,node_modules,vendor --quiet 2>/dev/null || ` +
+			`--slug=${ dir } --exclude=blocks,scripts,tests,node_modules,vendor --quiet 2>/dev/null || ` +
 			`echo "note: could not regenerate ${ dir }.pot"; fi`,
 		`rm -rf /wplab/build/${ dir }-${ version }.zip`,
 		`cd /wplab/build && zip -rq ${ dir }-${ version }.zip ${ dir } -x '*.DS_Store'`,
