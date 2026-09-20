@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { packageScript } from '../../cli/commands/build.mjs';
+import { discoverBlocks, discoverScripts } from '../../cli/vite/wordpress-blocks.mjs';
 import { installTargets } from '../../cli/commands/skills.mjs';
 import { pluginCheckPassed } from '../../cli/lib/plugin-check.mjs';
 import { createJobQueue } from '../../dashboard/job-queue.mjs';
@@ -42,6 +43,27 @@ cd() { :; }; wp() { :; }; find() { :; };
 	const result = spawnSync( 'bash', [ '-c', prelude + packageScript( 'my-plugin', '0.1.0' ) ], { encoding: 'utf8' } );
 	assert.equal( result.status, 42, result.stderr );
 	assert.ok( ! result.stdout.includes( 'unexpected-zip' ) );
+} );
+
+test( 'packaging excludes editor sources from the generated translation catalogue', () => {
+	assert.match( packageScript( 'my-plugin', '0.1.0' ), /--exclude=blocks,scripts,tests,node_modules,vendor/ );
+} );
+
+test( 'editor scripts are discovered independently from blocks', () => {
+	const root = fs.mkdtempSync( path.join( os.tmpdir(), 'wplab-editor-scripts-test-' ) );
+	const put = ( relative, text = '' ) => {
+		const file = path.join( root, relative );
+		fs.mkdirSync( path.dirname( file ), { recursive: true } );
+		fs.writeFileSync( file, text );
+	};
+	try {
+		put( 'scripts/sidebar/index.tsx' );
+		put( 'scripts/shared/helper.ts' );
+		put( 'blocks/callout/block.json', '{}' );
+		put( 'blocks/callout/index.js' );
+		assert.deepEqual( discoverScripts( root ).map( ( entry ) => entry.name ), [ 'sidebar' ] );
+		assert.deepEqual( discoverBlocks( root ).map( ( entry ) => entry.name ), [ 'callout' ] );
+	} finally { fs.rmSync( root, { recursive: true, force: true } ); }
 } );
 
 test( 'Plugin Check distinguishes valid reports from failures and malformed output', () => {
