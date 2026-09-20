@@ -19,19 +19,15 @@ jobs:
           node-version: 22
 
       - name: Check that the tag matches the plugin version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          HEADER="$(grep -m1 '^\s*\*\s*Version:' plugins/*/[a-z]*.php | head -1 | sed -E 's/.*Version:\s*//' | tr -d '[:space:]')"
-          if [ "$TAG" != "$HEADER" ]; then
-            echo "Tag $TAG does not match the plugin header $HEADER."
-            echo "Run ./bin/wpx version $TAG and commit before tagging."
-            exit 1
-          fi
+        run: node cli/scripts/check-public-versions.mjs "$GITHUB_REF_NAME"
 
       - run: ./bin/wpx up latest
-      - run: ./bin/wpx build --edition=both --verify
+      - run: ./bin/wpx build --edition=both --public-only --verify
+
+      - name: Validate the current public build
+        run: node cli/scripts/validate-public-artifacts.mjs
 
       - uses: softprops/action-gh-release@v3
         with:
-          files: dist/*.zip
+          files: .wplab/public-artifacts/*.zip
           generate_release_notes: true

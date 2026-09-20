@@ -75,7 +75,23 @@ add_filter( 'myplugin_pro_license_endpoint', fn() => 'https://shop.example.com/a
 `GenericJsonProvider` documents the request and response shape. EDD Software Licensing, Lemon
 Squeezy and Freemius all fit the same interface.
 
-## Building both
+## Packaging policy
+
+Each edition can set `distribution` in `starter.json`:
+
+- `public` (the backward-compatible default) is included by a plain `wpx build`.
+- `local` stays available for development and tests, but is only packaged when explicitly selected
+  with `--edition=pro` or `--edition=both` on a local machine.
+
+Release automation must use `--public-only`. A local edition is then reported and skipped. Any
+attempt to package one in CI is rejected, including packaging initiated by the playground. This is
+a workflow safeguard, not DRM: the source remains available and can be built locally.
+
+Every packaging run writes `.wplab/public-artifacts/build-manifest.json` and stages only the public
+ZIPs from that run beside it. CI and release workflows validate this manifest instead of uploading
+`dist/*.zip`, so an older local ZIP left in `dist/` can never become a release artifact.
+
+## Building both locally
 
 ```bash
 ./bin/wpx build --edition=both --verify

@@ -71,6 +71,9 @@
             },
             "wporg": {
               "type": "boolean"
+            },
+            "distribution": {
+              "enum": [ "public", "local" ]
             }
           },
           "required": [
@@ -90,6 +93,9 @@
             },
             "wporg": {
               "type": "boolean"
+            },
+            "distribution": {
+              "enum": [ "public", "local" ]
             }
           },
           "required": [

@@ -25,7 +25,8 @@ jobs:
       - name: Build the free edition
         run: |
           ./bin/wpx up latest
-          ./bin/wpx build --edition=free --verify
+          ./bin/wpx build --edition=free --public-only --verify
+          node cli/scripts/validate-public-artifacts.mjs
 
       - name: Publish
         uses: 10up/action-wordpress-plugin-deploy@stable

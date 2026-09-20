@@ -143,13 +143,14 @@ async function packageCurrent( state, s, edition ) {
 	const out = ensureDir( path.join( work, 'package' ) );
 	const packages = [];
 	for ( const dir of selectedPlugins( s, edition ) ) {
+		const definition = Object.values( s.editions ).find( ( item ) => item.dir === dir );
 		log.step( `Building ZIP: ${ dir }` );
 		const pkg = await buildPackage( dir, async ( script ) => {
 			const result = await spawn( 'docker', [ 'run', '--rm', '--entrypoint', 'bash',
 				'--mount', `type=bind,src=${ path.join( paths.plugins, dir ) },dst=/var/www/html/wp-content/plugins/${ dir },readonly`,
 				'--mount', `type=bind,src=${ out },dst=/wplab`, image, '-lc', script ] );
 			return result.code === 0;
-		} );
+		}, { distribution: definition?.distribution || 'public' } );
 		const zip = path.join( out, 'build', pkg.zipName );
 		ensureDir( path.join( paths.root, 'dist' ) );
 		fs.copyFileSync( zip, path.join( paths.root, 'dist', pkg.zipName ) );

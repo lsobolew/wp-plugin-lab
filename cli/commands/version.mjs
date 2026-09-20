@@ -98,6 +98,19 @@ function applyEdits( list, dryRun ) {
 	return touched;
 }
 
+/** Resolve the independently versioned plugin editions selected by --edition. */
+export function selectVersionEditions( s, requested ) {
+	if ( requested && ! [ 'free', 'pro', 'both' ].includes( requested ) ) {
+		throw new UserError( 'Use --edition=free|pro|both.' );
+	}
+	const wanted = requested && requested !== 'both' ? [ requested ] : Object.keys( s.editions || {} );
+	const selected = wanted
+		.filter( ( edition ) => s.editions?.[ edition ]?.enabled && s.editions[ edition ].dir )
+		.map( ( edition ) => ( { edition, dir: s.editions[ edition ].dir } ) );
+	if ( ! selected.length ) throw new UserError( `No enabled edition selected${ requested ? ` for --edition=${ requested }` : '' }.` );
+	return selected;
+}
+
 /** Keeps "Requires at least" / "Tested up to" aligned with the versions actually tested. */
 async function syncHeaders( dirs, dryRun ) {
 	const matrix = await resolveMatrix();
@@ -156,9 +169,8 @@ export async function run( argv ) {
 	} );
 
 	const s = starter();
-	const dirs = Object.values( s.editions || {} )
-		.filter( ( e ) => e?.enabled && e?.dir )
-		.map( ( e ) => e.dir )
+	const selected = selectVersionEditions( s, flags.edition );
+	const dirs = selected.map( ( item ) => item.dir )
 		.filter( ( dir ) => fs.existsSync( path.join( paths.plugins, dir ) ) );
 
 	const dryRun = Boolean( flags[ 'dry-run' ] );
@@ -176,7 +188,7 @@ export async function run( argv ) {
 			touched.push( ...applyEdits( edits( dir, constant, version ), dryRun ) );
 		}
 
-		log.step( `Version ${ c.bold( version ) }` );
+		log.step( `Version ${ c.bold( version ) } (${ selected.map( ( item ) => item.edition ).join( ', ' ) })` );
 	}
 
 	if ( flags[ 'sync-headers' ] || ! positional.length ) {
