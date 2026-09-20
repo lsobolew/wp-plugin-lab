@@ -1,5 +1,9 @@
 # WP Plugin Lab
 
+For manual testing of the packaged plugin, run `./bin/wpx playground`.
+It starts an isolated persistent site with seeded roles, User Switching and Mailpit.
+See [the playground guide](docs/playground.md).
+
 A starter for building WordPress plugins against **many WordPress versions at once**, with real
 tests on every one of them, a dashboard to drive it, and a free/paid edition split baked in.
 
