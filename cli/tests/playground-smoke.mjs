@@ -86,10 +86,10 @@ try {
 		await page.goto( `${ state( single ).url }/wp-admin/users.php` );
 		const authorId = wp( single, 'user', 'get', 'author', '--field=ID' );
 		await page.locator( `#user-${ authorId }` ).hover();
-		await page.locator( `#user-${ authorId }` ).getByRole( 'link', { name: 'Switch To', exact: true } ).click();
+		await page.locator( `#user-${ authorId }` ).getByRole( 'link', { name: /^Switch to /i } ).click();
 		await page.waitForLoadState( 'domcontentloaded' );
 		assert.match( await page.locator( 'body' ).innerText(), /Preserved Author/ );
-		assert.match( await page.locator( 'body' ).innerText(), /Switch back/i );
+		assert.match( await page.locator( 'body' ).innerText(), /Switch\s+back/i );
 	} finally { await browser.close(); }
 	const multi = create( 'multi', true );
 	console.log( 'Smoke: second isolated playground, WP 6.6/PHP 7.4 multisite' );
