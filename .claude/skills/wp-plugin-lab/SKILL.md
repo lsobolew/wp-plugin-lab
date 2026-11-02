@@ -113,9 +113,21 @@ When the extension contract changes, bump `Core\Api::VERSION` in the free plugin
 ## Releasing
 
 ```bash
-./bin/wpx version 1.2.0            # every place the version is written down
+./bin/wpx version 1.2.0            # every edition and every place the version is written down
+./bin/wpx version 1.3.2 --edition=free
+./bin/wpx version 2.34.4 --edition=pro
 ./bin/wpx build --edition=both --verify
 ```
+
+Free and Pro may use independent release lines. Omitting `--edition` deliberately preserves the
+older shared-version workflow; `--edition=both` is its explicit form. Product version changes do
+not change the free plugin's extension API version or the Pro minimum API requirement.
+
+`starter.json` may mark an edition as `distribution: public` (the backward-compatible default) or
+`distribution: local`. A plain build packages public editions. An explicit local build may package
+either edition, while CI and releases must use `--public-only`; packaging a local edition in CI is
+rejected. Publish only `.wplab/public-artifacts/` after validating its build manifest, never a
+`dist/*.zip` glob, because `dist/` deliberately retains the developer's older local packages.
 
 `--verify` unpacks the zip on a running site and activates it. **Never run `wp plugin install`
 against a mounted plugin directory** - WordPress deletes the target directory before unpacking,
